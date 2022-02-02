@@ -1,0 +1,17 @@
+setenv RTE_TARGET x86_64-native-linuxapp-gcc
+setenv ARCH x86
+setenv DESTDIR /sw/dpdk/install
+make config T=x86_64-native-linuxapp-gcc DESTDIR=/work/tools/dpdk-stable-18.11.2
+make install T=x86_64-native-linuxapp-gcc DESTDIR=/work/tools/dpdk-stable-18.11.2
+
+
+
+
+when required:
+yum install kernel-devel
+yum install numactl-devel
+
+
+umount /home
+vi /etc/fstab
+mount -a (make permanent)

@@ -1,0 +1,29 @@
+git clone https://github.com/arunpb/test-repo.git
+
+
+ git add -A ; git commit -m "adding updates..." ; git push
+
+To permanently store username and email address (per repository)
+=================================================================
+git config --global user.name arunpb
+git config --global user.email arunp.learn@gmail.com
+
+New configurations
+==================
+git config --global push.default simple
+
+refresh settings after config change
+=====================================
+git commit --amend --reset-author
+
+
+cache username and password
+============================
+git config --global credential.helper cache
+
+do a test commit and push, from next time it wont ask
+
+
+if there is any cannot find github error, then update some packages
+====================================================================
+yum update -y nss curl libcurl

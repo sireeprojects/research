@@ -1,0 +1,81 @@
+--------------------------------------------------------------------------------
+# links
+https://www.poftut.com/qemu-tutorial/
+
+--------------------------------------------------------------------------------
+# Install Virtualization tools
+-install virt-manager and it will install all required dependencies
+    dnf install -y virt-manager
+    dnf install -y libvirt
+-start libvirtd
+    systemctl start libvirtd
+-start libvirtd on boot
+    systemctl enable libvirtd
+--------------------------------------------------------------------------------
+# virsh console not working
+-A serial and console device must be added to the VM domain
+    <serial type='pty'>
+        <target port='0'/>
+    </serial>
+    <console type='pty'>
+        <target type='serial' port='0'/>
+    </console>
+-The following should be added to grub commandline
+    console=ttyS0,115200
+    vi /etc/default/grub (append console=ttyS0,115200 to GRUB_CMDLINE_LINUX)
+    grub2-mkconfig -o /boot/grub2/grub.cfg
+    reboot
+    verify using cat /proc/cmdline
+
+--------------------------------------------------------------------------------
+# Another Solution to virsh console not working
+inside the VM guest, execute this
+systemctl enable serial-getty@ttyS0.service
+systemctl start serial-getty@ttyS0.service
+reboot
+
+--------------------------------------------------------------------------------
+# install virt-sparsify
+dnf install libguestfs-tools-c
+-virt-sparsify CentOS9Min.qcow2 out.qcow2
+-mv out.qcow2 CentOS9Min.qcow2
+
+--------------------------------------------------------------------------------
+# virt top
+dnf install virt-top
+
+--------------------------------------------------------------------------------
+# dump qemu commandline from a virsh domain
+virsh domxml-to-native qemu-argv --domain <domain_name>
+
+--------------------------------------------------------------------------------
+# dumpxml
+virsh dumpxml <domain> > domain.xml
+
+--------------------------------------------------------------------------------
+# generate uuid using
+uuidgen utility
+
+--------------------------------------------------------------------------------
+# compile qemu 6.2.0
+need to install ninja first
+
+-install re2c [url：http://re2c.org/index.html]
+    dnf install -y re2c  (works)
+    (OR)
+    tar -xvzf re2c-1.0.3.tar.gz
+        cd re2c-1.0.3/
+        autoreconf -i -W all
+        ./configure
+        make&&make install
+-git clone git://github.com/ninja-build/ninja.git
+    cd ninja
+    ./configure.py --bootstrap
+    cp ninja /usr/bin/
+    (test)ninja --version
+
+-install glib, pixman
+    dnf install -y glib2 glib2-devel pixman-devel
+
+-configure --prefix=/sw/tools/qemu-6.2.0 --target-list=x86_64-softmmu
+--------------------------------------------------------------------------------

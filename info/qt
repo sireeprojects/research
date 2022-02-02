@@ -1,0 +1,11 @@
+--------------------------------------------------------------------------------
+# missing -LGL
+yum install mesa-libGL-devel
+
+--------------------------------------------------------------------------------
+# Disable warning from QT applications
+Disbled Wayland by uncommenting WaylandEnable=false in the /etc/gdm3/custom.conf
+Add QT_QPA_PLATFORM=xcb in /etc/environment
+reboot
+
+--------------------------------------------------------------------------------

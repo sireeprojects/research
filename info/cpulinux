@@ -1,0 +1,32 @@
+--------------------------------------------------------------------------------
+ENABLE/DISABLE CPU AT RUNTIME
+-----------------------------
+list all available CPUs
+$ grep "processor" /proc/cpuinfo
+
+Disable a particular CPU at runtime (not persistent across boots)
+$ echo 0 > /sys/devices/system/cpu/cpu0/online
+
+Enable a particular CPU at runtime (not persistent across boots)
+$ echo 1 > /sys/devices/system/cpu/cpu0/online
+
+
+other grub parameters to experiment
+maxcpus=N
+nr_cpus=N
+
+--------------------------------------------------------------------------------
+NUMA
+----
+install numactl
+command: numactl --hardware
+--------------------------------------------------------------------------------
+LSTOPO COMMANDS
+---------------
+lstopo --of txt --no-io
+lstopo --no-io -l -c
+hwloc-info
+lstopo-no-graphics
+lstopo -p (gui) physical
+lstopo -l (gui) logical
+--------------------------------------------------------------------------------

@@ -1,0 +1,78 @@
+https://bbs.eetop.cn/thread-612232-1-1.html
+https://www.javatpoint.com/how-to-install-wine-on-centos
+https://zhouyuqian.com/2021/03/07/VirtuosoOnUbuntu/
+--------------------------------------------------------------------------------
+# install and crack steps
+
+1. chmod +x modelsim-2020.4_Downloadly.ir.aol
+
+2. ./modelsim-2020.4_Downloadly.ir.aol
+    install both 32 and 64 bit tools
+
+3. Install Wine
+    curl -O https://dl.winehq.org/wine/source/7.0/wine-7.0.tar.x
+    dependencies: freetype
+        dnf install -y freetype-devel
+        yum install libXrender-devel
+        yum install gnutls-devel
+        yum install -y libXft-devel
+    ./configure --enable-win64     
+    make
+    make install
+
+--------------------------------------------------------------------------------
+
+full wine compile 32 and 64 bit
+yum -y install glibc.i686 glibc-devel.i686 libXtst.i686 
+yum install -y libX11-devel.i686
+yum install -y freetype-devel.i686
+        dnf install -y freetype-devel.i686
+        yum install libXrender-devel.i686
+        yum install gnutls-devel.i686
+        yum install -y libXft-devel.i686
+
+--------------------------------------------------------------------------------
+# Steps:
+vlib work
+vmap work work
+gcc -I/sw/msim/modeltech/include -shared -fPIC -o hello.so hello.c
+vlog -sv hello.sv
+vsim -c hello -sv_lib hello
+
+--------------------------------------------------------------------------------
+# plain verilog/systemverilog
+vlib work
+vmap work work
+vlog <rtl file>   optional -sv
+vsim -c hello -voptargs="+acc"
+    -> vcd file waves.vcd
+    -> vcd add -r hello/*    #not sure about the -r optiosn
+    -> run -All
+
+    -> vcd add -r *    #dumps all hierarchy
+
+--------------------------------------------------------------------------------
+# run.do
+vlog bitw.v
+vsim -c top
+run -All
+
+# vlog hello.c hello.sv
+# vsim -c hello
+# vcd file waves.vcd
+# vcd add hello/*
+# run -All
+
+#vlog hello.sv hello.c
+#vsim -c hello -do "run -all;quit"
+
+--------------------------------------------------------------------------------
+# test.do
+vlib work
+vmap work work
+/usr/bin/gcc -I/sw/msim/modeltech/include -shared -fPIC -o hello.so hello.c
+vlog -sv hello.sv
+vsim -c hello -sv_lib hello
+run -All
+
+--------------------------------------------------------------------------------

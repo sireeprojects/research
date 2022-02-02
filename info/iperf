@@ -1,0 +1,12 @@
+vsock fork of iperf3
+--------------------
+link->https://github.com/stefano-garzarella/iperf-vsock
+git clone https://github.com/stefano-garzarella/iperf-vsock.git
+
+
+https://wiki.qemu.org/Features/VirtioVsock
+
+
+https://www.youtube.com/watch?v=LFqz-VZPhFE
+https://man7.org/linux/man-pages/man7/vsock.7.html
+https://lwn.net/Articles/520000/ (VSOCK for Linux upstreaming)

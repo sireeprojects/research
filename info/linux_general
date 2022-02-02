@@ -1,0 +1,144 @@
+--------------------------------------------------------------------------------
+# htop dependencies
+dnf install -y ncurses-devel
+
+--------------------------------------------------------------------------------
+# rename ethernet interface, applicable to centos8/9
+nmcli command like utility
+-nmcli con show
+
+Edit the /etc/default/grub file and append the
+net.ifnames=0 and biosdevname=0 parameters to the GRUB_CMDLINE_LINUX variable as below:
+
+vi /etc/default/grub
+GRUB_TIMEOUT=5
+GRUB_DISTRIBUTOR="$(sed 's, release .*$,,g' /etc/system-release)"
+GRUB_DEFAULT=saved
+GRUB_DISABLE_SUBMENU=true
+GRUB_TERMINAL_OUTPUT="console"
+GRUB_CMDLINE_LINUX="crashkernel=auto resume=/dev/mapper/cl-swap rd.lvm.lv=cl/root rd.lvm.lv=cl/swap rhgb quiet net.ifnames=0 biosdevname=0"
+GRUB_DISABLE_RECOVERY="true"
+GRUB_ENABLE_BLSCFG=true
+
+UEFI boot mode
+grub2-mkconfig -o /boot/efi/EFI/redhat/grub.cfg
+
+legacy boot mode (works for CentOS9)
+grub2-mkconfig -o /boot/grub2/grub.cfg
+
+--------------------------------------------------------------------------------
+# enable minimize maximize buttons, issue the following cmd on a terminal
+gsettings set org.gnome.desktop.wm.preferences button-layout ":minimize,maximize,close"
+
+--------------------------------------------------------------------------------
+# CentOS-9-Stream epel update
+dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+dnf install -y epel-next-release
+
+--------------------------------------------------------------------------------
+# CentOS-9-Stream basic tools
+dnf install -y tcsh wireshark gvim htop
+
+--------------------------------------------------------------------------------
+# disable boot countdown
+/boot/grub/grub.conf
+timeout=-1
+only disable, but shows the boot menu, user has to choose
+timeout=0
+does not show the boot menu, boots the default entry
+
+--------------------------------------------------------------------------------
+# sock size setup
+sudo vim  /etc/sysctl.conf
+# 2GB Max
+net.core.wmem_max=2147483647
+net.core.rmem_max=2147483647
+# 4GB Max
+net.core.wmem_max=4294967295
+net.core.rmem_max=4294967295
+-save and execute:
+sudo sysctl -p  (OR) sysctl --system
+
+--------------------------------------------------------------------------------
+# qemu compile steps
+tar xjvf /qemu-2.10.0.tar.bz2
+cd qemu-2.10.0/
+./configure --prefix=<INSTALL PATH> --target-list=x86_64-softmmu
+make -j<50% of number of cpu cores>    example: make -j32
+make install
+
+--------------------------------------------------------------------------------
+# grub update
+-RHEL 6.5
+sudo vim /etc/grub.conf
+set paste, set wrap!
+save
+sudo reboot
+
+-RHEL7.*
+sudo vim /etc/default/grub 
+sudo grub2-mkconfig -o /boot/grub2/grub.cfg
+sudo reboot
+
+hugepage:
+	iommu=pt intel_iommu=on default_hugepagesz=1G hugepagesz=1G hugepages=64
+Isolation:
+	isolcpus=36-71 nohz_full=36-71 rcu_nocbs=36-71
+
+--------------------------------------------------------------------------------
+# ostinato compile
+protocol buffers, compile using tarball (protoc and libproto should be in path)
+    untar
+    ./autogen.sh
+    ./configure
+    make; make install
+or
+yum install -y protobuf protobuf-devel
+yum install -y libpcap libpcap-devel
+yum install -y libnl3 libnl3-devel
+requires bindconfig (shud be already in linux installation)
+
+issues with running ostinato
+download ost.tar.gz from gdrive
+untar
+setenv LD_LIBRARY_PATH /root/ost/lib:/root/ost/protolib
+copy ost/plugins/platforms directory into ost/
+
+drone &
+ostinato
+
+--------------------------------------------------------------------------------
+# change hostname
+hostnamectl set-hostname your-new-hostname
+localhost.localdomain
+
+--------------------------------------------------------------------------------
+# To disable creation of perl5 directory at home
+-The solution is to modify the two files 
+/etc/profile.d/perl-homedir.sh and 
+/etc/profile.d/perl-homedir.csh,
+-changing the setting of PERL_HOMEDIR from 1 to 0. 
+after logging back in, the PERL5LIB environment variable is no longer set. 
+
+--------------------------------------------------------------------------------
+# change ens* or enp* to eth0
+/etc/default/grub 
+add to GRUB_CMDLINE_LINUX=
+    GRUB_CMDLINE_LINUX="net.ifnames=0 biosdevname=0"
+    VM: grub2-mkconfig -o /boot/grub2/grub.cfg
+    Physical: grub2-mkconfig -o /boot/efi/EFI/centos/grub.cfg
+    reboot
+
+--------------------------------------------------------------------------------
+# hugepage and cpu isolation in grub 
+/etc/default/grub 
+add to GRUB_CMDLINE_LINUX=
+GRUB_CMDLINE_LINUX="isolcpus=6-53 default_hugepagesz=1G hugepagesz=1G hugepages=4"
+VM: grub2-mkconfig -o /boot/grub2/grub.cfg
+Physical: grub2-mkconfig -o /boot/efi/EFI/centos/grub.cfg
+reboot
+
+-additionally
+GRUB_CMDLINE_LINUX="isolcpus=6-53 iommu=pt intel_iommu=on nohz_full=6-53 rcu_nocbs=6-53"
+
+--------------------------------------------------------------------------------

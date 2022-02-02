@@ -1,0 +1,126 @@
+#   --------------------------------------------------------------------------------
+#   Cadence Accelerated VIP
+#   (c) Cadence Design Systems, Inc. All rights reserved
+#   Script Version: 20170626042929
+#   --------------------------------------------------------------------------------
+#   Number of load modules       : 1
+#   Number of ports/load modules : 32
+#   Ixia Socket path             : /tmp/ixia_data_path.sock
+#   Ixia Qemu path               : ../../../qemu-ixia/qemu-patched/bin/qemu-system-x86_64
+#   VLM Disk path                : ../../../images
+#   VLM Disk template            : load_module_
+#   VNC Displays start from      : 6900
+#   --------------------------------------------------------------------------------
+../../../qemu-ixia/qemu-patched/bin/qemu-system-x86_64 \
+      -enable-kvm -m 4096 \
+      -object memory-backend-file,id=mem,size=4096M,mem-path=/dev/hugepages,share=on \
+      -numa node,memdev=mem -mem-prealloc \
+      -smp 2,sockets=2,cores=1,threads=1 -no-user-config \
+      -nodefaults -rtc base=utc -boot strict=on \
+      -device piix3-usb-uhci,id=usb,bus=pci.0,addr=0x1.0x2 \
+      -drive file=../../../images/load_module_0.qcow2,if=none,id=drive-virtio-disk0,format=qcow2 \
+      -device virtio-blk-pci,scsi=off,bus=pci.0,addr=0x5,drive=drive-virtio-disk0,id=virtio-disk0,bootindex=1 \
+      -chardev pty,id=charserial0 -device isa-serial,chardev=charserial0,id=serial0 \
+      -device virtio-balloon-pci,id=balloon0,bus=pci.0,addr=0x6 -msg timestamp=on -daemonize \
+      \
+      -vnc :1000 -vga std \
+      -netdev tap,id=hostnet0,vhost=on,script=../csh/qemu-ifup.csh \
+      -device virtio-net-pci,netdev=hostnet0,id=net0,mac="00:60:2f:00:00:01",bus=pci.0,addr=0x3 \
+      \
+      -chardev socket,id=char1,path=/tmp/ixia_data_path.sock\
+      -chardev socket,id=char2,path=/tmp/ixia_data_path.sock\
+      -chardev socket,id=char3,path=/tmp/ixia_data_path.sock\
+      -chardev socket,id=char4,path=/tmp/ixia_data_path.sock\
+      -chardev socket,id=char5,path=/tmp/ixia_data_path.sock\
+      -chardev socket,id=char6,path=/tmp/ixia_data_path.sock\
+      -chardev socket,id=char7,path=/tmp/ixia_data_path.sock\
+      -chardev socket,id=char8,path=/tmp/ixia_data_path.sock\
+      -chardev socket,id=char9,path=/tmp/ixia_data_path.sock\
+      -chardev socket,id=char10,path=/tmp/ixia_data_path.sock\
+      -chardev socket,id=char11,path=/tmp/ixia_data_path.sock\
+      -chardev socket,id=char12,path=/tmp/ixia_data_path.sock\
+      -chardev socket,id=char13,path=/tmp/ixia_data_path.sock\
+      -chardev socket,id=char14,path=/tmp/ixia_data_path.sock\
+      -chardev socket,id=char15,path=/tmp/ixia_data_path.sock\
+      -chardev socket,id=char16,path=/tmp/ixia_data_path.sock\
+      -chardev socket,id=char17,path=/tmp/ixia_data_path.sock\
+      -chardev socket,id=char18,path=/tmp/ixia_data_path.sock\
+      -chardev socket,id=char19,path=/tmp/ixia_data_path.sock\
+      -chardev socket,id=char20,path=/tmp/ixia_data_path.sock\
+      -chardev socket,id=char21,path=/tmp/ixia_data_path.sock\
+      -chardev socket,id=char22,path=/tmp/ixia_data_path.sock\
+      -chardev socket,id=char23,path=/tmp/ixia_data_path.sock\
+      -chardev socket,id=char24,path=/tmp/ixia_data_path.sock\
+      -chardev socket,id=char25,path=/tmp/ixia_data_path.sock\
+      -chardev socket,id=char26,path=/tmp/ixia_data_path.sock\
+      -chardev socket,id=char27,path=/tmp/ixia_data_path.sock\
+      -chardev socket,id=char28,path=/tmp/ixia_data_path.sock\
+      -chardev socket,id=char29,path=/tmp/ixia_data_path.sock\
+      -chardev socket,id=char30,path=/tmp/ixia_data_path.sock\
+      -chardev socket,id=char31,path=/tmp/ixia_data_path.sock\
+      -chardev socket,id=char32,path=/tmp/ixia_data_path.sock\
+      -netdev type=vhost-user,id=hostnet1,chardev=char1,vhostforce \
+      -device virtio-net-pci,netdev=hostnet1,id=net1,mac="00:60:2f:00:00:02",bus=pci.0,addr=0x7,palladium=yes \
+      -netdev type=vhost-user,id=hostnet2,chardev=char2,vhostforce \
+      -device virtio-net-pci,netdev=hostnet2,id=net2,mac="00:60:2f:00:00:03",bus=pci.0,addr=0x8,palladium=yes \
+      -netdev type=vhost-user,id=hostnet3,chardev=char3,vhostforce \
+      -device virtio-net-pci,netdev=hostnet3,id=net3,mac="00:60:2f:00:00:04",bus=pci.0,addr=0x9,palladium=yes \
+      -netdev type=vhost-user,id=hostnet4,chardev=char4,vhostforce \
+      -device virtio-net-pci,netdev=hostnet4,id=net4,mac="00:60:2f:00:00:05",bus=pci.0,addr=0xa,palladium=yes \
+      -netdev type=vhost-user,id=hostnet5,chardev=char5,vhostforce \
+      -device virtio-net-pci,netdev=hostnet5,id=net5,mac="00:60:2f:00:00:06",bus=pci.0,addr=0xb,palladium=yes \
+      -netdev type=vhost-user,id=hostnet6,chardev=char6,vhostforce \
+      -device virtio-net-pci,netdev=hostnet6,id=net6,mac="00:60:2f:00:00:07",bus=pci.0,addr=0xc,palladium=yes \
+      -netdev type=vhost-user,id=hostnet7,chardev=char7,vhostforce \
+      -device virtio-net-pci,netdev=hostnet7,id=net7,mac="00:60:2f:00:00:08",bus=pci.0,addr=0xd,palladium=yes \
+      -netdev type=vhost-user,id=hostnet8,chardev=char8,vhostforce \
+      -device virtio-net-pci,netdev=hostnet8,id=net8,mac="00:60:2f:00:00:09",bus=pci.0,addr=0xe,palladium=yes \
+      -netdev type=vhost-user,id=hostnet9,chardev=char9,vhostforce \
+      -device virtio-net-pci,netdev=hostnet9,id=net9,mac="00:60:2f:00:00:0a",bus=pci.0,addr=0xf,palladium=yes \
+      -netdev type=vhost-user,id=hostnet10,chardev=char10,vhostforce \
+      -device virtio-net-pci,netdev=hostnet10,id=net10,mac="00:60:2f:00:00:0b",bus=pci.0,addr=0x10,palladium=yes \
+      -netdev type=vhost-user,id=hostnet11,chardev=char11,vhostforce \
+      -device virtio-net-pci,netdev=hostnet11,id=net11,mac="00:60:2f:00:00:0c",bus=pci.0,addr=0x11,palladium=yes \
+      -netdev type=vhost-user,id=hostnet12,chardev=char12,vhostforce \
+      -device virtio-net-pci,netdev=hostnet12,id=net12,mac="00:60:2f:00:00:0d",bus=pci.0,addr=0x12,palladium=yes \
+      -netdev type=vhost-user,id=hostnet13,chardev=char13,vhostforce \
+      -device virtio-net-pci,netdev=hostnet13,id=net13,mac="00:60:2f:00:00:0e",bus=pci.0,addr=0x13,palladium=yes \
+      -netdev type=vhost-user,id=hostnet14,chardev=char14,vhostforce \
+      -device virtio-net-pci,netdev=hostnet14,id=net14,mac="00:60:2f:00:00:0f",bus=pci.0,addr=0x14,palladium=yes \
+      -netdev type=vhost-user,id=hostnet15,chardev=char15,vhostforce \
+      -device virtio-net-pci,netdev=hostnet15,id=net15,mac="00:60:2f:00:00:10",bus=pci.0,addr=0x15,palladium=yes \
+      -netdev type=vhost-user,id=hostnet16,chardev=char16,vhostforce \
+      -device virtio-net-pci,netdev=hostnet16,id=net16,mac="00:60:2f:00:00:11",bus=pci.0,addr=0x16,palladium=yes \
+      -netdev type=vhost-user,id=hostnet17,chardev=char17,vhostforce \
+      -device virtio-net-pci,netdev=hostnet17,id=net17,mac="00:60:2f:00:00:12",bus=pci.0,addr=0x17,palladium=yes \
+      -netdev type=vhost-user,id=hostnet18,chardev=char18,vhostforce \
+      -device virtio-net-pci,netdev=hostnet18,id=net18,mac="00:60:2f:00:00:13",bus=pci.0,addr=0x18,palladium=yes \
+      -netdev type=vhost-user,id=hostnet19,chardev=char19,vhostforce \
+      -device virtio-net-pci,netdev=hostnet19,id=net19,mac="00:60:2f:00:00:14",bus=pci.0,addr=0x19,palladium=yes \
+      -netdev type=vhost-user,id=hostnet20,chardev=char20,vhostforce \
+      -device virtio-net-pci,netdev=hostnet20,id=net20,mac="00:60:2f:00:00:15",bus=pci.0,addr=0x1a,palladium=yes \
+      -netdev type=vhost-user,id=hostnet21,chardev=char21,vhostforce \
+      -device virtio-net-pci,netdev=hostnet21,id=net21,mac="00:60:2f:00:00:16",bus=pci.0,addr=0x1b,palladium=yes \
+      -netdev type=vhost-user,id=hostnet22,chardev=char22,vhostforce \
+      -device virtio-net-pci,netdev=hostnet22,id=net22,mac="00:60:2f:00:00:17",bus=pci.0,addr=0x1c,palladium=yes \
+      -netdev type=vhost-user,id=hostnet23,chardev=char23,vhostforce \
+      -device virtio-net-pci,netdev=hostnet23,id=net23,mac="00:60:2f:00:00:18",bus=pci.0,addr=0x1d,palladium=yes \
+      -netdev type=vhost-user,id=hostnet24,chardev=char24,vhostforce \
+      -device virtio-net-pci,netdev=hostnet24,id=net24,mac="00:60:2f:00:00:19",bus=pci.0,addr=0x1e,palladium=yes \
+      -netdev type=vhost-user,id=hostnet25,chardev=char25,vhostforce \
+      -device virtio-net-pci,netdev=hostnet25,id=net25,mac="00:60:2f:00:00:1a",bus=pci.0,addr=0x1f.0,multifunction=on,palladium=yes \
+      -netdev type=vhost-user,id=hostnet26,chardev=char26,vhostforce \
+      -device virtio-net-pci,netdev=hostnet26,id=net26,mac="00:60:2f:00:00:1b",bus=pci.0,addr=0x1f.1,multifunction=on,palladium=yes \
+      -netdev type=vhost-user,id=hostnet27,chardev=char27,vhostforce \
+      -device virtio-net-pci,netdev=hostnet27,id=net27,mac="00:60:2f:00:00:1c",bus=pci.0,addr=0x1f.2,multifunction=on,palladium=yes \
+      -netdev type=vhost-user,id=hostnet28,chardev=char28,vhostforce \
+      -device virtio-net-pci,netdev=hostnet28,id=net28,mac="00:60:2f:00:00:1d",bus=pci.0,addr=0x1f.3,multifunction=on,palladium=yes \
+      -netdev type=vhost-user,id=hostnet29,chardev=char29,vhostforce \
+      -device virtio-net-pci,netdev=hostnet29,id=net29,mac="00:60:2f:00:00:1e",bus=pci.0,addr=0x1f.4,multifunction=on,palladium=yes \
+      -netdev type=vhost-user,id=hostnet30,chardev=char30,vhostforce \
+      -device virtio-net-pci,netdev=hostnet30,id=net30,mac="00:60:2f:00:00:1f",bus=pci.0,addr=0x1f.5,multifunction=on,palladium=yes \
+      -netdev type=vhost-user,id=hostnet31,chardev=char31,vhostforce \
+      -device virtio-net-pci,netdev=hostnet31,id=net31,mac="00:60:2f:00:00:20",bus=pci.0,addr=0x1f.6,multifunction=on,palladium=yes \
+      -netdev type=vhost-user,id=hostnet32,chardev=char32,vhostforce \
+      -device virtio-net-pci,netdev=hostnet32,id=net32,mac="00:60:2f:00:00:21",bus=pci.0,addr=0x1f.7,multifunction=on,palladium=yes \
+      
