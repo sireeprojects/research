@@ -1,0 +1,516 @@
+metadata
+--------
+
+#if !defined __AVIP_METADATA_H__
+#define __AVIP_METADATA_H__
+
+#include <stdint.h>
+
+typedef enum __attribute__ ((__packed__))
+{
+    TX = 1,   // From STC: a Tx frame, with IFG
+    RX,       // To STC: an Rx frame, with latency and time
+    TIME,     // To STC: emulation time update (no frame)
+    TX_END    // From STC: end of Tx
+
+} avip_mdata_type;
+
+#define AVIP_SIG_PRESENT 0x01
+
+typedef struct __attribute__ ((__packed__))
+{
+    avip_mdata_type type;
+    uint8_t flags;
+    uint8_t pad1[6];
+    union
+    {
+        struct                  // From STC
+        {
+            uint64_t ifg;       // Octets, counted from end of FCS to start of next preamble.
+            uint16_t start_group_id;
+            uint16_t start_group_count;
+            uint32_t spare;
+        };
+        struct                  // To STC
+        {
+            uint64_t latency;   // Picosec.
+            uint64_t time;      // Picosec after some arbitrary epoch.
+        };
+    };
+    uint64_t pad2;              // Pad to 32 bytes so that the frame proper is 16 byte aligned.
+} avip_mdata_t;
+
+//
+// Conversion factor from emulation times to STC times (2.5 nanoseconds).
+//
+#define EMU2STC_TIME    0.0004
+//
+// Conversion factor from emulation latencies to STC units (2.5 nanoseconds).
+//
+#define EMU2STC_LATENCY 0.0004
+
+#endif // !defined __AVIP_METADATA_H__
+
+------------------------------------------------------------------------------------------------------
+
+main.c
+
+
+#include <time.h>
+#include <linux/if_ether.h>
+#include <linux/if_vlan.h>
+#include <linux/virtio_net.h>
+#include <linux/virtio_ring.h>
+#include <strings.h>
+#include <signal.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/eventfd.h>
+#include <sys/param.h>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <inttypes.h>
+
+
+#include <rte_atomic.h>
+#include <rte_cycles.h>
+#include <rte_ethdev.h>
+#include <rte_log.h>
+#include <rte_string_fns.h>
+#include <rte_malloc.h>
+#include <rte_vhost.h>
+#include <rte_ip.h>
+#include <rte_tcp.h>
+
+#include "avip_metadata.h"
+
+#define MBUF_CACHE_SIZE	128
+#define MBUF_DATA_SIZE	16000
+
+static const char *sockpath = "/tmp/emulation/sock";
+static struct rte_mempool *mbuf_pool;
+
+#define MAX_PORTS 2
+
+static struct port_struct
+{
+    volatile int tx_up;
+    volatile int rx_up;
+    volatile uint64_t rx_frames;
+    volatile uint64_t tx_frames;
+    volatile uint64_t rx_octets;
+    volatile uint64_t tx_octets;
+} ports[MAX_PORTS];
+
+/*************************
+ * VID up / down handling.
+ ************************/
+
+enum {VIRTIO_RXQ, VIRTIO_TXQ, VIRTIO_QNUM};
+
+static void destroy_vid(int vid)
+{
+    struct timeval tv;
+    gettimeofday (&tv, NULL);
+    printf ("%4ld.%06ld Destroy device vid %d\n", tv.tv_sec % 10000, tv.tv_usec, vid);
+    ports[vid].tx_up = 0;
+    ports[vid].rx_up = 0;
+}
+
+static int new_vid (int vid)
+{
+
+    struct timeval tv;
+    gettimeofday (&tv, NULL);
+    printf ("%4ld.%06ld New device vid %d\n", tv.tv_sec % 10000, tv.tv_usec, vid);
+    return 0;
+
+}
+
+static int vring_state_changed (int vid, uint16_t qid, int enable)
+{
+    const char *tag = "??";
+    struct timeval tv;
+    gettimeofday (&tv, NULL);
+    if (qid == VIRTIO_TXQ)
+    {
+        tag = "Tx";
+    }
+    if (qid == VIRTIO_RXQ)
+    {
+        tag = "Rx";
+    }
+    printf ("%4ld.%06ld %s vring state changed, vid = %d, queue id = %d, enable = %d\n", 
+                                    tv.tv_sec % 10000, tv.tv_usec, tag, vid, qid, enable);
+    if (qid == VIRTIO_TXQ)
+    {
+        ports[vid].rx_up = enable;
+    }
+    if (qid == VIRTIO_RXQ)
+    {
+        ports[vid].tx_up = enable;
+    }
+    return 0;
+}
+
+/*
+ * These callback allow devices to be added to the data core when configuration
+ * has been fully complete.
+ */
+static const struct vhost_device_ops virtio_net_device_ops =
+{
+	.new_device =  new_vid,
+	.destroy_device = destroy_vid,
+	.vring_state_changed = vring_state_changed,
+};
+
+/* When we receive a INT signal, unregister vhost driver */
+static void sigint_handler(__rte_unused int signum)
+{
+	/* Unregister vhost driver. */
+	int ret = rte_vhost_driver_unregister(sockpath);
+	if (ret != 0)
+		rte_exit(EXIT_FAILURE, "vhost driver unregister failure.\n");
+	exit(0);
+}
+
+static void create_mbuf_pool(uint32_t mbuf_size, uint32_t nr_mbuf_cache)
+{
+	uint32_t nr_mbufs;
+	nr_mbufs = 256;
+
+	mbuf_pool = rte_pktmbuf_pool_create("MBUF_POOL", nr_mbufs,
+					    nr_mbuf_cache, 0, mbuf_size,
+					    rte_socket_id());
+	if (mbuf_pool == NULL)
+		rte_exit(EXIT_FAILURE, "Cannot create mbuf pool\n");
+}
+
+
+#define UPDATE_INTERVAL 5     // seconds
+static void* perf_stats (void __attribute ((unused)) *arg)
+{
+    struct port_struct prev[MAX_PORTS];
+    struct port_struct now[MAX_PORTS];
+    uint64_t tot_rx_frames, tot_rx_octets, tot_tx_frames, tot_tx_octets;
+    memcpy (prev, ports, sizeof (ports));
+
+    for (;;)
+    {
+        sleep (UPDATE_INTERVAL);
+        memcpy (now, ports, sizeof (ports));
+        tot_rx_frames = tot_rx_octets = tot_tx_frames = tot_tx_octets = 0;
+
+        printf ("Port      Rx fps     Rx Bps      Tx fps     Tx Bps\n");
+        for (int port = 0; port < MAX_PORTS; port++)
+        {
+            if (!ports[port].rx_up)
+            {
+                continue;
+            }
+            printf (" %2d   %10lu %10lu  %10lu %10lu\n",
+                    port,
+                    (now[port].rx_frames - prev[port].rx_frames) / UPDATE_INTERVAL, 
+                    (now[port].rx_octets - prev[port].rx_octets) / UPDATE_INTERVAL, 
+                    (now[port].tx_frames - prev[port].tx_frames) / UPDATE_INTERVAL, 
+                    (now[port].tx_octets - prev[port].tx_octets) / UPDATE_INTERVAL);
+            tot_rx_frames += now[port].rx_frames - prev[port].rx_frames;
+            tot_rx_octets += now[port].rx_octets - prev[port].rx_octets;
+            tot_tx_frames += now[port].tx_frames - prev[port].tx_frames;
+            tot_tx_octets += now[port].tx_octets - prev[port].tx_octets;
+        }
+        printf ("Tot   %10lu %10lu  %10lu %10lu\n",
+                tot_rx_frames / UPDATE_INTERVAL, 
+                tot_rx_octets / UPDATE_INTERVAL, 
+                tot_tx_frames / UPDATE_INTERVAL, 
+                tot_tx_octets / UPDATE_INTERVAL);
+        printf ("\n");
+        memcpy (prev, now, sizeof (prev));
+    }
+    return 0;
+}
+
+int main (int argc, char *argv[])
+{
+    static pthread_t stats_tid;
+    int ret;
+
+    memset (ports, 0, sizeof (ports));
+
+	signal(SIGINT, sigint_handler);
+
+    unlink (sockpath);
+
+	ret = rte_eal_init(argc, argv);
+	if (ret < 0)
+		rte_exit(EXIT_FAILURE, "Error with EAL initialization\n");
+    argc -= ret;
+    argv += ret;
+
+    rte_log_set_global_level(RTE_LOG_NOTICE);
+
+	/* parse app arguments */
+	if (rte_lcore_count() > RTE_MAX_LCORE)
+		rte_exit(EXIT_FAILURE,"Not enough cores\n");
+
+    RTE_LOG(INFO, USER1, "There are %d ports available and %d cores\n", rte_eth_dev_count_avail(), rte_lcore_count());
+
+	create_mbuf_pool(MBUF_DATA_SIZE, MBUF_CACHE_SIZE);
+
+	ret = rte_vhost_driver_register(sockpath, 0);
+	if (ret != 0)
+		rte_exit(EXIT_FAILURE, "vhost driver register failure.\n");
+
+
+	rte_vhost_driver_callback_register (sockpath, &virtio_net_device_ops);
+	chmod (sockpath, 0777);
+	rte_vhost_driver_start(sockpath);
+
+	ret = pthread_create (&stats_tid, NULL, (void *)perf_stats, NULL);
+	if (ret != 0)
+    {
+		rte_exit (EXIT_FAILURE, "Cannot create stats thread\n");
+    }
+
+    for (;;)
+    {
+        for (int port = 0; port < MAX_PORTS; port++)
+        {
+            struct rte_mbuf *pkt;
+            if (!ports[port].rx_up)
+            {
+                continue;
+            }
+            ret = rte_vhost_dequeue_burst (port, VIRTIO_TXQ, mbuf_pool, &pkt, 1);
+            if (!ret)
+            {
+                continue;
+            }
+            avip_mdata_t *mdata = rte_pktmbuf_mtod (pkt, avip_mdata_t *);
+            avip_mdata_type type = mdata->type;
+            int len = rte_pktmbuf_pkt_len (pkt) - sizeof (avip_mdata_t);
+
+            if (type == TX)
+            {
+                ports[port].rx_frames += 1;
+                ports[port].rx_octets += len;
+
+                int tx_port = port ^ 1;
+
+                if (ports[tx_port].tx_up)
+                {
+                    memset (mdata, 0, sizeof (avip_mdata_t));
+
+                    mdata->type = RX;
+                    mdata->time = 100000;
+                    mdata->latency = 100000;
+
+                    int n_tx = rte_vhost_enqueue_burst (tx_port, VIRTIO_RXQ, &pkt, 1);
+                    if (n_tx != 1)
+                    {
+                        do
+                        {
+                            rte_pause ();
+                            n_tx = rte_vhost_enqueue_burst (tx_port, VIRTIO_RXQ, &pkt, 1);
+                            //
+                            // The return value can be zero if the peer has gone away. Give up if so.
+                            //
+                            if (n_tx == 0 && !ports[tx_port].tx_up)
+                            {
+                                break;
+                            }
+                        } while (n_tx != 1);
+                    }
+                    ports[tx_port].tx_frames += n_tx;
+                    ports[tx_port].tx_octets += len;
+                }
+
+                rte_pktmbuf_free(pkt);
+                //printf ("%d - %ld %ld %ld %ld\n", port, ports[port].rx_frames,
+                //        ports[port].rx_octets, ports[tx_port].tx_frames, ports[tx_port].tx_octets);
+            }
+        }
+    }
+    return 0;
+}
+
+---------------------------------------------------------
+makefile
+
+#   BSD LICENSE
+#
+#   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
+#   All rights reserved.
+#
+#   Redistribution and use in source and binary forms, with or without
+#   modification, are permitted provided that the following conditions
+#   are met:
+#
+#     * Redistributions of source code must retain the above copyright
+#       notice, this list of conditions and the following disclaimer.
+#     * Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in
+#       the documentation and/or other materials provided with the
+#       distribution.
+#     * Neither the name of Intel Corporation nor the names of its
+#       contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
+#
+#   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+#   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+#   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+#   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+ifeq ($(RTE_SDK),)
+$(error "Please define RTE_SDK environment variable")
+endif
+
+# Default target, can be overriden by command line or environment
+RTE_TARGET ?= x86_64-native-linuxapp-gcc
+
+include $(RTE_SDK)/mk/rte.vars.mk
+
+ifneq ($(CONFIG_RTE_EXEC_ENV),"linuxapp")
+$(info This application can only operate in a linuxapp environment, \
+please change the definition of the RTE_TARGET environment variable)
+all:
+else
+
+# binary name
+APP = ../avip_loopback
+
+# all source are stored in SRCS-y
+SRCS-y := main.c 
+
+CFLAGS += -Wall -Werror -Wno-unused-parameter -O2 -D_FILE_OFFSET_BITS=64
+CFLAGS += $(WERROR_FLAGS)
+CFLAGS += -D_GNU_SOURCE
+CFLAGS += -DEMULATION_AVIP
+CFLAGS += -I$(RTE_SDK)/lib/librte_spirent
+
+LDLIBS += -lncurses
+
+include $(RTE_SDK)/mk/rte.extapp.mk
+
+endif
+
+-------------------------------------------------------------------
+
+run script
+
+mkdir -p /tmp/emulation
+./avip_loopback -c f -n 4 --socket-mem 1024 --huge-dir /mnt/huge
+
+-------------------------------------------------------------------------
+
+vm xml
+
+<domain type='kvm' id='35' xmlns:qemu='http://libvirt.org/schemas/domain/qemu/1.0'>
+  <name>avip</name>
+  <uuid>43357005-6cbf-4d23-ac06-c8001162f69b</uuid>
+  <memory unit='KiB'>2097152</memory>
+  <currentMemory unit='KiB'>2097152</currentMemory>
+  <vcpu placement='static'>5</vcpu>
+  <resource>
+    <partition>/machine</partition>
+  </resource>
+  <os>
+    <type arch='x86_64' machine='pc-i440fx-2.10'>hvm</type>
+    <boot dev='hd'/>
+  </os>
+  <features>
+    <acpi/>
+  </features>
+  <cpu mode='host-passthrough' check='none'/>
+  <clock offset='utc'>
+    <timer name='pit' tickpolicy='delay'/>
+  </clock>
+  <on_poweroff>destroy</on_poweroff>
+  <on_reboot>restart</on_reboot>
+  <on_crash>destroy</on_crash>
+  <devices>
+    <emulator>/scratch/arunp/spirent/rel2-john/qemu/installed/bin/qemu-system-x86_64</emulator>
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='raw' cache='none'/>
+      <source file='/scratch/arunp/spirent/rel2-john/vm-9.90.6723.img'/>
+      <backingStore/>
+      <target dev='hda' bus='ide'/>
+      <alias name='ide0-0-0'/>
+      <address type='drive' controller='0' bus='0' target='0' unit='0'/>
+    </disk>
+    <controller type='ide' index='0'>
+      <alias name='ide'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x01' function='0x1'/>
+    </controller>
+    <controller type='usb' index='0' model='piix3-uhci'>
+      <alias name='usb'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x01' function='0x2'/>
+    </controller>
+    <controller type='pci' index='0' model='pci-root'>
+      <alias name='pci.0'/>
+    </controller>
+    <interface type='vhostuser'>
+      <mac address='52:54:00:ce:1e:bb'/>
+      <source type='unix' path='/tmp/emulation/sock' mode='client'/>
+      <model type='virtio'/>
+      <alias name='net0'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x04' function='0x0'/>
+    </interface>
+    <interface type='vhostuser'>
+      <mac address='52:54:00:a5:37:bf'/>
+      <source type='unix' path='/tmp/emulation/sock' mode='client'/>
+      <model type='virtio'/>
+      <alias name='net1'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x05' function='0x0'/>
+    </interface>
+    <interface type='bridge'>
+      <mac address='52:54:00:f6:94:9c'/>
+      <source bridge='management'/>
+      <target dev='vnet14'/>
+      <model type='virtio'/>
+      <alias name='net2'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x02' function='0x0'/>
+    </interface>
+    <serial type='pty'>
+      <source path='/dev/pts/78'/>
+      <target type='isa-serial' port='0'>
+        <model name='isa-serial'/>
+      </target>
+      <alias name='serial0'/>
+    </serial>
+    <console type='pty' tty='/dev/pts/78'>
+      <source path='/dev/pts/78'/>
+      <target type='serial' port='0'/>
+      <alias name='serial0'/>
+    </console>
+    <input type='mouse' bus='ps2'>
+      <alias name='input0'/>
+    </input>
+    <input type='keyboard' bus='ps2'>
+      <alias name='input1'/>
+    </input>
+    <memballoon model='virtio'>
+      <alias name='balloon0'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x03' function='0x0'/>
+    </memballoon>
+  </devices>
+  <seclabel type='none' model='none'/>
+  <seclabel type='dynamic' model='dac' relabel='yes'>
+    <label>+0:+0</label>
+    <imagelabel>+0:+0</imagelabel>
+  </seclabel>
+  <qemu:commandline>
+    <qemu:arg value='-object'/>
+    <qemu:arg value='memory-backend-file,id=mem,size=2G,mem-path=/mnt/huge,share=on'/>
+    <qemu:arg value='-numa'/>
+    <qemu:arg value='node,memdev=mem'/>
+    <qemu:arg value='-mem-prealloc'/>
+  </qemu:commandline>
+</domain>

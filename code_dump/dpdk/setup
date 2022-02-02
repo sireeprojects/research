@@ -1,0 +1,4 @@
+# Compile DPDK examples
+setenv RTE_TARGET x86_64-native-linuxapp-gcc
+setenv RTE_SDK /sw/tools_backup/dpdk-stable-19.11.11
+setenv ARCH x86

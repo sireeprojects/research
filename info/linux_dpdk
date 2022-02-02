@@ -1,17 +1,20 @@
-setenv RTE_TARGET x86_64-native-linuxapp-gcc
-setenv ARCH x86
-setenv DESTDIR /sw/dpdk/install
-make config T=x86_64-native-linuxapp-gcc DESTDIR=/work/tools/dpdk-stable-18.11.2
-make install T=x86_64-native-linuxapp-gcc DESTDIR=/work/tools/dpdk-stable-18.11.2
-
-
-
-
+--------------------------------------------------------------------------------
+# Steps to compile DPDK (only uptill 19.11.11)
 when required:
 yum install kernel-devel
 yum install numactl-devel
 
+setenv RTE_TARGET x86_64-native-linuxapp-gcc
+setenv ARCH x86
+setenv DESTDIR /sw/dpdk/install
+make config T=x86_64-native-linuxapp-gcc DESTDIR=/sw/tools/dpdk-19.11.1
+make install T=x86_64-native-linuxapp-gcc DESTDIR=/sw/tools/dpdk-19.11.1
 
-umount /home
-vi /etc/fstab
-mount -a (make permanent)
+--------------------------------------------------------------------------------
+# Compile DPDK examples
+
+setenv RTE_TARGET x86_64-native-linuxapp-gcc
+setenv RTE_SDK /sw/tools_backup/dpdk-stable-19.11.11
+setenv ARCH x86
+
+--------------------------------------------------------------------------------

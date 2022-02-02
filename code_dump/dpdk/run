@@ -1,0 +1,2 @@
+mkdir -p /tmp/emulation
+./app.x -c f -n 4 --socket-mem 1024 --huge-dir /mnt/huge
