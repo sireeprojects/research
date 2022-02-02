@@ -1,3 +1,14 @@
+# libvirt: error : cannot execute binary /usr/bin/qemu-kvm: Permission denied
+getenforce (just to check)
+
+-temporarily disable    
+setenforce 0
+
+-to permanently disable
+edit /etc/selinux/config and add
+SELINUX=enforcing
+to
+SELINUX=disabled
 --------------------------------------------------------------------------------
 # links
 https://www.poftut.com/qemu-tutorial/
