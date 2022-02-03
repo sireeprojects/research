@@ -1,4 +1,8 @@
 --------------------------------------------------------------------------------
+# required to compile wmctrl from source
+yum install -y libXmu-devel 
+
+--------------------------------------------------------------------------------
 # for brctl command
 dnf install -y bridge-utils
 
