@@ -1,0 +1,7 @@
+sudo yum install autoconf automake libtool unzip gcc-c++ git -y
+git clone https://github.com/google/protobuf.git
+cd protobuf
+./autogen.sh
+./configure
+make -j4
+make install

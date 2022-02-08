@@ -9,3 +9,7 @@ Add QT_QPA_PLATFORM=xcb in /etc/environment
 reboot
 
 --------------------------------------------------------------------------------
+# Disable Qvariant warnings (add this in .pro file)
+QMAKE_CXXFLAGS += -Wno-deprecated-copy
+
+--------------------------------------------------------------------------------
