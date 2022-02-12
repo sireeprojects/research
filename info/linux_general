@@ -1,3 +1,4 @@
+# 
 --------------------------------------------------------------------------------
 # centos auto login root in console mode
 1. remove the original getty@tty1.service symlink:
@@ -182,5 +183,54 @@ reboot
 
 -additionally
 GRUB_CMDLINE_LINUX="isolcpus=6-53 iommu=pt intel_iommu=on nohz_full=6-53 rcu_nocbs=6-53"
+
+--------------------------------------------------------------------------------
+# ssh login without password
+
+Node1 : 192.168.0.9
+Node2 : 192.168.0.10
+
+Step One: Test the connection and access from node1 to node2
+    [root@node1 ~]# ssh root@192.168.0.10
+    The authenticity of host '192.168.0.10 (192.168.0.10)' can't be established.
+    RSA key fingerprint is 6d:8f:63:9b:3b:63:e1:72:b3:06:a4:e4:f4:37:21:42.
+    Are you sure you want to continue connecting (yes/no)? yes
+    Warning: Permanently added '192.168.0.10' (RSA) to the list of known hosts.
+    root@192.168.0.10's password:
+    Last login: Thu Dec 10 22:04:55 2015 from 192.168.0.1
+    [root@node2 ~]#
+
+Step Two: Generate public and private keys using ssh-key-gen.
+Please take note that you can increase security by protecting the private key
+with a passphrase.
+    [root@node1 ~]# ssh-keygen
+    Generating public/private rsa key pair.
+    Enter file in which to save the key (/root/.ssh/id_rsa):
+    Enter passphrase (empty for no passphrase):
+    Enter same passphrase again:
+    Your identification has been saved in /root/.ssh/id_rsa.
+    Your public key has been saved in /root/.ssh/id_rsa.pub.
+    The key fingerprint is:
+    b4:51:7e:1e:52:61:cd:fb:b2:98:4b:ad:a1:8b:31:6d root@node1.ehowstuff.local
+    The key's randomart image is:
+    +--[ RSA 2048]----+
+    |          . ++   |
+    |         o o  o  |
+    |        o o o  . |
+    |       . o + ..  |
+    |        S   .  . |
+    |         .   .. .|
+    |        o E oo.o |
+    |         = ooo.  |
+    |        . o.o.   |
+    +-----------------+
+
+Step Three: Copy or transfer the public key to remote-host using ssh-copy-id command.
+It will append the indicated identity file to ~/.ssh/authorized_keys on node2
+    root@node1 ~]# ssh-copy-id -i ~/.ssh/id_rsa.pub 192.168.0.10
+    root@192.168.0.10's password:
+    Now try logging into the machine, with "ssh '192.168.0.10'", and check in:
+    .ssh/authorized_keys
+    to make sure we haven't added extra keys that you weren't expecting.
 
 --------------------------------------------------------------------------------
