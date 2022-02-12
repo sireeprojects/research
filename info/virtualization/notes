@@ -1,5 +1,27 @@
 
 --------------------------------------------------------------------------------
+#  enable hugepage access for root
+-edit /etc/libvirtd/qemu.conf
+uncomment 
+user = "root"
+group = "root"
+hugetlbfs_mount = "/dev/hugepages"
+-restart libvirtd
+service libvirtd restart
+
+--------------------------------------------------------------------------------
+# mount hugepages for dpdk on /mnt/huge
+-enable and configure hugespages from the grub
+-mount 
+mkdir /mnt/huge
+mount -t hugetlbfs pagesize=1GB /mnt/huge
+
+-permanent mount
+-edit /etc/fstab
+-add
+nodev /mnt/huge hugetlbfs pagesize=1GB 0 0
+
+--------------------------------------------------------------------------------
 # set and enable root password in ubuntu
 sudo passwd
 

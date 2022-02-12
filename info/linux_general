@@ -1,4 +1,34 @@
 --------------------------------------------------------------------------------
+# centos auto login root in console mode
+1. remove the original getty@tty1.service symlink:
+rm /etc/systemd/system/getty.target.wants/getty@tty1.service
+
+2. make a copy of the getty@.service file and call it getty@tty1.service
+cp /lib/systemd/system/getty@.service /etc/systemd/system/getty@tty1.service
+
+3. edit this file (the last line, must be ADDED):
+[Service]
+...
+ExecStart=-/sbin/agetty --autologin root --noclear %I
+...
+[Install]
+...
+Alias=getty@tty1.service
+
+4. make a symlink in getty.target.wants
+ln -s /etc/systemd/system/getty@tty1.service /etc/systemd/system/getty.target.wants/getty@tty1.service
+
+5. Reboot
+
+--------------------------------------------------------------------------------
+# centos auto login root
+-edit /etc/gdm/custom.conf
+-add
+[daemon]
+AutomaticLoginEnable=true
+AutomaticLogin=root
+
+--------------------------------------------------------------------------------
 # required to compile wmctrl from source
 yum install -y libXmu-devel 
 

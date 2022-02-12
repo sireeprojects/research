@@ -27,7 +27,7 @@
 
 #define MBUF_CACHE_SIZE 128
 #define MBUF_DATA_SIZE  16000
-#define MAX_PORTS 2
+#define MAX_PORTS 1
 
 static const char *sockpath = "/tmp/emulation/sock";
 static struct rte_mempool *mbuf_pool;
@@ -175,11 +175,12 @@ int main (int argc, char *argv[]) {
     rte_vhost_driver_callback_register (sockpath, &virtio_net_device_ops);
     chmod (sockpath, 0777);
     rte_vhost_driver_start(sockpath);
+    chmod (sockpath, 0777);
 
-    ret = pthread_create (&stats_tid, NULL, (void *)perf_stats, NULL);
+    // ret = pthread_create (&stats_tid, NULL, (void *)perf_stats, NULL);
 
-    if (ret != 0)
-        rte_exit (EXIT_FAILURE, "Cannot create stats thread\n");
+    // if (ret != 0)
+    //     rte_exit (EXIT_FAILURE, "Cannot create stats thread\n");
 
     for (;;) {
         for (int port = 0; port < MAX_PORTS; port++) {
@@ -197,39 +198,40 @@ int main (int argc, char *argv[]) {
             avip_mdata_type type = mdata->type;
 
             int len = rte_pktmbuf_pkt_len (pkt) - sizeof (avip_mdata_t);
+            printf("Length of pkt received is %d\n", len);
 
-            if (type == TX) {
-                ports[port].rx_frames += 1;
-                ports[port].rx_octets += len;
+            // if (type == TX) {
+            //     ports[port].rx_frames += 1;
+            //     ports[port].rx_octets += len;
 
-                int tx_port = port ^ 1;
+            //     int tx_port = port ^ 1;
 
-                if (ports[tx_port].tx_up) {
-                    memset (mdata, 0, sizeof (avip_mdata_t));
+            //     if (ports[tx_port].tx_up) {
+            //         memset (mdata, 0, sizeof (avip_mdata_t));
 
-                    mdata->type = RX;
-                    mdata->time = 100000;
-                    mdata->latency = 100000;
+            //         mdata->type = RX;
+            //         mdata->time = 100000;
+            //         mdata->latency = 100000;
 
-                    int n_tx = rte_vhost_enqueue_burst (tx_port, VIRTIO_RXQ, &pkt, 1);
-                    if (n_tx != 1) {
-                        do {
-                            rte_pause ();
-                            n_tx = rte_vhost_enqueue_burst (tx_port, VIRTIO_RXQ, &pkt, 1);
-                            // The return value can be zero if the peer has gone away. Give up if so.
-                            if (n_tx == 0 && !ports[tx_port].tx_up) {
-                                break;
-                            }
-                        } while (n_tx != 1);
-                    }
-                    ports[tx_port].tx_frames += n_tx;
-                    ports[tx_port].tx_octets += len;
-                }
+            //         int n_tx = rte_vhost_enqueue_burst (tx_port, VIRTIO_RXQ, &pkt, 1);
+            //         if (n_tx != 1) {
+            //             do {
+            //                 rte_pause ();
+            //                 n_tx = rte_vhost_enqueue_burst (tx_port, VIRTIO_RXQ, &pkt, 1);
+            //                 // The return value can be zero if the peer has gone away. Give up if so.
+            //                 if (n_tx == 0 && !ports[tx_port].tx_up) {
+            //                     break;
+            //                 }
+            //             } while (n_tx != 1);
+            //         }
+            //         ports[tx_port].tx_frames += n_tx;
+            //         ports[tx_port].tx_octets += len;
+            //     }
 
-                rte_pktmbuf_free(pkt);
-                printf ("%d - %ld %ld %ld %ld\n", port, ports[port].rx_frames,
-                    ports[port].rx_octets, ports[tx_port].tx_frames, ports[tx_port].tx_octets);
-            }
+            //     rte_pktmbuf_free(pkt);
+            //     printf ("%d - %ld %ld %ld %ld\n", port, ports[port].rx_frames,
+            //         ports[port].rx_octets, ports[tx_port].tx_frames, ports[tx_port].tx_octets);
+            // }
         }
     }
     return 0;

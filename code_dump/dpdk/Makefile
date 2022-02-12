@@ -21,7 +21,7 @@ APP = ../app.x
 # all source are stored in SRCS-y
 SRCS-y := main.c 
 
-CFLAGS += -Wall -Werror -Wno-unused-parameter -O2 -D_FILE_OFFSET_BITS=64
+CFLAGS += -Wall -Werror -Wno-unused-parameter -O2 -D_FILE_OFFSET_BITS=64 -Wno-unused-variable -Wno-unused-function
 CFLAGS += $(WERROR_FLAGS)
 CFLAGS += -D_GNU_SOURCE
 CFLAGS += -DEMULATION_AVIP
