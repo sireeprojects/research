@@ -1,3 +1,43 @@
+
+--------------------------------------------------------------------------------
+# set and enable root password in ubuntu
+sudo passwd
+
+--------------------------------------------------------------------------------
+# install and enable ssh (ubuntu)
+-install
+apt install openssh-server
+-check
+systemctl status ssh
+-disable firewall
+ufw allow ssh
+
+--enable service
+systemctl enable --now ssh
+--stop service
+systemctl disable --now ssh
+--restart service
+systemctl restart ssh
+
+--------------------------------------------------------------------------------
+# enable ubuntu VM ssh root access
+-edit /etc/ssh/sshd_config
+-change
+PermitRootLogin without-password
+-to
+PermitRootLogin yes
+- restart ssh service
+service ssh restart
+
+--------------------------------------------------------------------------------
+# SSH keys
+you can use SSH keys. If you don't have one, create one using ssh-keygen 
+(stick to the default for the key, and skip the password if you feel like it).
+Then do sudo -s (or whatever your preferred method of becoming root is),
+and add an SSH key to /root/.ssh/authorized_keys:
+cat /home/user/.ssh/id_rsa.pub >> /root/.ssh/authorized_keys
+
+--------------------------------------------------------------------------------
 # libvirt: error : cannot execute binary /usr/bin/qemu-kvm: Permission denied
 getenforce (just to check)
 
