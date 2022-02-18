@@ -173,9 +173,9 @@ int main (int argc, char *argv[]) {
         rte_exit(EXIT_FAILURE, "vhost driver register failure.\n");
 
     rte_vhost_driver_callback_register (sockpath, &virtio_net_device_ops);
-    chmod (sockpath, 0777);
+    // chmod (sockpath, 0777);
     rte_vhost_driver_start(sockpath);
-    chmod (sockpath, 0777);
+    // chmod (sockpath, 0777);
 
     // ret = pthread_create (&stats_tid, NULL, (void *)perf_stats, NULL);
 

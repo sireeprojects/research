@@ -1,4 +1,4 @@
-#define VHOST_PATH "/tmp/arun_ixia_ctrl.sock"
+#define VHOST_PATH "/tmp/emulation/sock"
 #define NUM_RX_FRAMES 1000000 // nof pkts that will be sent to RX of load module
 
 #define _GNU_SOURCE
@@ -853,35 +853,39 @@ void *dequeue(void *bknd) {
                 DMSG("Error in extracted length");
                 exit(1);
             }
+
+            MSG("Packet received")
             // NOTE: we are not doing anything with the pkt
 
+
             // decode control pkt to detect start/stop of streams
-            memcpy (&meta, buf, 48);
+            // memcpy (&meta, buf, 48);
 
-            // after the tx path completes start the RX enqueue thread
-            if (meta.generic_flags) {
-                MSG("Received Control (%x)", meta.pd.metadata_type);
+            //...................// after the tx path completes start the RX enqueue thread
+            //...................if (meta.generic_flags) {
+            //...................    MSG("Received Control (%x)", meta.pd.metadata_type);
 
-                if (meta.pd.metadata_type==8) { // port disable
+            //...................    if (meta.pd.metadata_type==8) { // port disable
 
-                    // calculate time taken for transmission
-                    b->txend = clock();
-                    double cpu_time_used = ((double)(b->txend - b->txstart))/CLOCKS_PER_SEC;
-                    MSG("Transmit Side: Time taken: %f", cpu_time_used)
-                    b->txcnt=0;
+            //...................        // calculate time taken for transmission
+            //...................        b->txend = clock();
+            //...................        double cpu_time_used = ((double)(b->txend - b->txstart))/CLOCKS_PER_SEC;
+            //...................        MSG("Transmit Side: Time taken: %f", cpu_time_used)
+            //...................        b->txcnt=0;
 
-                    // fork off the rx thread
-                    // TODO
-                    pthread_create(&b->rx, NULL, &enqueue, (void*)b);
-                }
-            } else {
-                // save time at first frame
-                if (b->txcnt==0) {
-                    b->txstart = clock(); 
-                }
-                DMSG("frame rcvd:%d length: %d", b->txcnt+1, (len-48));
-                b->txcnt++;
-            }
+            //...................        // fork off the rx thread
+            //...................        // TODO
+            //...................        // pthread_create(&b->rx, NULL, &enqueue, (void*)b);
+            //...................    }
+            //...................} else {
+            //...................    // save time at first frame
+            //...................    if (b->txcnt==0) {
+            //...................        b->txstart = clock(); 
+            //...................    }
+            //...................    DMSG("frame rcvd:%d length: %d", b->txcnt+1, (len-48));
+            //...................    b->txcnt++;
+            //...................}
+
             // update used ring 
             used->ring[u_idx].id = d_idx;
             used->ring[u_idx].len = 1;
