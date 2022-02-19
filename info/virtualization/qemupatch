@@ -1,0 +1,233 @@
+diff -Naur original/qemu-2.10.0/cpus.c ixia/qemu-2.10.0/cpus.c
+--- original/qemu-2.10.0/cpus.c	2017-08-30 09:50:40.000000000 -0700
++++ ixia/qemu-2.10.0/cpus.c	2018-07-20 02:32:41.839107440 -0700
+@@ -1722,17 +1722,32 @@
+     }
+ }
+ 
++extern int vcpu_pin_start;
++
+ static void qemu_kvm_start_vcpu(CPUState *cpu)
+ {
++	cpu_set_t cpuset;
++	if (vcpu_pin_start != -1)	
++	{
++		CPU_ZERO(&cpuset);
++		CPU_SET(vcpu_pin_start, &cpuset);
++	}
++
+     char thread_name[VCPU_THREAD_NAME_SIZE];
+ 
+     cpu->thread = g_malloc0(sizeof(QemuThread));
+     cpu->halt_cond = g_malloc0(sizeof(QemuCond));
+     qemu_cond_init(cpu->halt_cond);
+-    snprintf(thread_name, VCPU_THREAD_NAME_SIZE, "CPU %d/KVM",
+-             cpu->cpu_index);
+-    qemu_thread_create(cpu->thread, thread_name, qemu_kvm_cpu_thread_fn,
+-                       cpu, QEMU_THREAD_JOINABLE);
++    snprintf(thread_name, VCPU_THREAD_NAME_SIZE, "CPU %d/KVM", cpu->cpu_index);
++    qemu_thread_create(cpu->thread, thread_name, qemu_kvm_cpu_thread_fn, cpu, QEMU_THREAD_JOINABLE);
++
++	if (vcpu_pin_start != -1)	
++	{
++		printf ("CPU %d/KVM pinned to Core %d\n", cpu->cpu_index, vcpu_pin_start); fflush (stdout);
++		pthread_setaffinity_np((cpu->thread)->thread, sizeof(cpu_set_t), &cpuset);
++		vcpu_pin_start++;
++	}
++
+     while (!cpu->created) {
+         qemu_cond_wait(&qemu_cpu_cond, &qemu_global_mutex);
+     }
+diff -Naur original/qemu-2.10.0/hw/core/qdev-properties-system.c ixia/qemu-2.10.0/hw/core/qdev-properties-system.c
+--- original/qemu-2.10.0/hw/core/qdev-properties-system.c	2017-08-30 09:50:40.000000000 -0700
++++ ixia/qemu-2.10.0/hw/core/qdev-properties-system.c	2018-07-20 02:20:40.183815537 -0700
+@@ -445,5 +445,8 @@
+         object_property_find(OBJECT(dev), "vectors", NULL)) {
+         qdev_prop_set_uint32(dev, "vectors", nd->nvectors);
+     }
++    if (nd->palladium) {
++        object_property_set_bool(OBJECT(dev), true, "palladium", NULL);
++    }
+     nd->instantiated = 1;
+ }
+diff -Naur original/qemu-2.10.0/hw/net/virtio-net.c ixia/qemu-2.10.0/hw/net/virtio-net.c
+--- original/qemu-2.10.0/hw/net/virtio-net.c	2017-08-30 09:50:41.000000000 -0700
++++ ixia/qemu-2.10.0/hw/net/virtio-net.c	2018-07-20 02:20:40.183815537 -0700
+@@ -1935,7 +1935,11 @@
+     }
+ 
+     virtio_net_set_config_size(n, n->host_features);
+-    virtio_init(vdev, "virtio-net", VIRTIO_ID_NET, n->config_size);
++    if ( n->palladium) {
++    	virtio_init(vdev, "virtio-net", VIRTIO_ID_NET_PALLADIUM, n->config_size);
++    } else {
++    	virtio_init(vdev, "virtio-net", VIRTIO_ID_NET, n->config_size);
++    }
+ 
+     /*
+      * We set a lower limit on RX queue size to what it always was.
+@@ -2151,6 +2155,7 @@
+     DEFINE_PROP_UINT16("host_mtu", VirtIONet, net_conf.mtu, 0),
+     DEFINE_PROP_BOOL("x-mtu-bypass-backend", VirtIONet, mtu_bypass_backend,
+                      true),
++    DEFINE_PROP_BOOL("palladium", VirtIONet, palladium, false),
+     DEFINE_PROP_END_OF_LIST(),
+ };
+ 
+diff -Naur original/qemu-2.10.0/include/hw/virtio/virtio-net.h ixia/qemu-2.10.0/include/hw/virtio/virtio-net.h
+--- original/qemu-2.10.0/include/hw/virtio/virtio-net.h	2017-08-30 09:50:41.000000000 -0700
++++ ixia/qemu-2.10.0/include/hw/virtio/virtio-net.h	2018-07-20 02:20:40.183815537 -0700
+@@ -99,6 +99,7 @@
+     int announce_counter;
+     bool needs_vnet_hdr_swap;
+     bool mtu_bypass_backend;
++    bool palladium;
+ } VirtIONet;
+ 
+ void virtio_net_set_netclient_name(VirtIONet *n, const char *name,
+diff -Naur original/qemu-2.10.0/include/net/net.h ixia/qemu-2.10.0/include/net/net.h
+--- original/qemu-2.10.0/include/net/net.h	2017-08-30 09:50:41.000000000 -0700
++++ ixia/qemu-2.10.0/include/net/net.h	2018-07-20 02:20:40.183815537 -0700
+@@ -197,6 +197,7 @@
+     int used;         /* is this slot in nd_table[] being used? */
+     int instantiated; /* does this NICInfo correspond to an instantiated NIC? */
+     int nvectors;
++    bool palladium;
+ };
+ 
+ extern int nb_nics;
+diff -Naur original/qemu-2.10.0/include/standard-headers/linux/virtio_ids.h ixia/qemu-2.10.0/include/standard-headers/linux/virtio_ids.h
+--- original/qemu-2.10.0/include/standard-headers/linux/virtio_ids.h	2017-08-30 09:50:41.000000000 -0700
++++ ixia/qemu-2.10.0/include/standard-headers/linux/virtio_ids.h	2018-07-20 02:20:40.184815610 -0700
+@@ -43,5 +43,6 @@
+ #define VIRTIO_ID_INPUT        18 /* virtio input */
+ #define VIRTIO_ID_VSOCK        19 /* virtio vsock transport */
+ #define VIRTIO_ID_CRYPTO       20 /* virtio crypto */
++#define VIRTIO_ID_NET_PALLADIUM  27 /* virtio net Cadence Palladium */
+ 
+ #endif /* _LINUX_VIRTIO_IDS_H */
+diff -Naur original/qemu-2.10.0/net/net.c ixia/qemu-2.10.0/net/net.c
+--- original/qemu-2.10.0/net/net.c	2017-08-30 09:50:41.000000000 -0700
++++ ixia/qemu-2.10.0/net/net.c	2018-07-20 02:20:40.184815610 -0700
+@@ -929,6 +929,12 @@
+         nd->nvectors = DEV_NVECTORS_UNSPECIFIED;
+     }
+ 
++	if (nic->has_palladium) {
++        nd->palladium = nic->palladium;
++    } else {
++        nd->palladium = false;
++    }
++
+     nd->used = 1;
+     nb_nics++;
+ 
+diff -Naur original/qemu-2.10.0/qapi-schema.json ixia/qemu-2.10.0/qapi-schema.json
+--- original/qemu-2.10.0/qapi-schema.json	2017-08-30 09:50:41.000000000 -0700
++++ ixia/qemu-2.10.0/qapi-schema.json	2018-07-20 02:20:40.185815683 -0700
+@@ -3697,7 +3697,8 @@
+     '*macaddr': 'str',
+     '*model':   'str',
+     '*addr':    'str',
+-    '*vectors': 'uint32' } }
++    '*vectors': 'uint32',
++    '*palladium': 'bool' } }
+ 
+ ##
+ # @String:
+diff -Naur original/qemu-2.10.0/qemu-options.hx ixia/qemu-2.10.0/qemu-options.hx
+--- original/qemu-2.10.0/qemu-options.hx	2017-08-30 09:50:41.000000000 -0700
++++ ixia/qemu-2.10.0/qemu-options.hx	2018-07-20 02:21:55.674390370 -0700
+@@ -612,6 +612,15 @@
+ Use @var{file} as hard disk 0, 1, 2 or 3 image (@pxref{disk_images}).
+ ETEXI
+ 
++DEF("vcpu_pin_start", HAS_ARG, QEMU_OPTION_vcpu_pin_start,
++    "-vcpu_pin_start n use 'n' as the starting core for vcpu pinning\n", QEMU_ARCH_ALL)
++STEXI
++@item -vcpu_pin_start @var{n}
++@itemx -vcpu_pin_start @var{n}
++@findex -vcpu_pin_start
++Use @var{n} as starting core for vcpu pinning
++ETEXI
++
+ DEF("cdrom", HAS_ARG, QEMU_OPTION_cdrom,
+     "-cdrom file     use 'file' as IDE cdrom image (cdrom is ide1 master)\n",
+     QEMU_ARCH_ALL)
+diff -Naur original/qemu-2.10.0/vl.c ixia/qemu-2.10.0/vl.c
+--- original/qemu-2.10.0/vl.c	2017-08-30 09:50:41.000000000 -0700
++++ ixia/qemu-2.10.0/vl.c	2018-07-20 02:25:17.677308078 -0700
+@@ -135,6 +135,8 @@
+ #define MAX_VIRTIO_CONSOLES 1
+ #define MAX_SCLP_CONSOLES 1
+ 
++int vcpu_pin_start = -1;
++
+ static const char *data_dir[16];
+ static int data_dir_idx;
+ const char *bios_name = NULL;
+@@ -275,6 +277,35 @@
+     },
+ };
+ 
++static QemuOptsList qemu_vcpu_pin_start_opts = {
++    .name = "vcpu-opts",
++    .implied_opt_name = "vcpu_pin_start",
++    .head = QTAILQ_HEAD_INITIALIZER(qemu_vcpu_pin_start_opts.head),
++    .desc = {
++        {
++            .name = "vcpu_pin_start",
++            .type = QEMU_OPT_NUMBER,
++        },
++        { /* end of list */ }
++    },
++};
++
++
++static int parse_vcpu(void *opaque, QemuOpts *opts, Error **errp)
++{
++   if (opts) {
++		vcpu_pin_start = qemu_opt_get_number(opts,"vcpu_pin_start",0);
++   }
++   return 0;
++}
++
++static void parse_vcpu_opts(MachineClass *mc)
++{
++    if (qemu_opts_foreach(qemu_find_opts("vcpu-opts"), parse_vcpu, NULL, NULL)) {
++        exit(1);
++    }
++}
++
+ static QemuOptsList qemu_option_rom_opts = {
+     .name = "option-rom",
+     .implied_opt_name = "romfile",
+@@ -3049,6 +3080,7 @@
+     module_call_init(MODULE_INIT_QOM);
+     monitor_init_qmp_commands();
+ 
++    qemu_add_opts(&qemu_vcpu_pin_start_opts);
+     qemu_add_opts(&qemu_drive_opts);
+     qemu_add_drive_opts(&qemu_legacy_drive_opts);
+     qemu_add_drive_opts(&qemu_common_drive_opts);
+@@ -3817,6 +3849,11 @@
+             case QEMU_OPTION_vnc:
+                 vnc_parse(optarg, &error_fatal);
+                 break;
++            case QEMU_OPTION_vcpu_pin_start:
++					 if (!qemu_opts_parse_noisily(qemu_find_opts("vcpu-opts"), optarg, true)) { 
++						 exit(1); 
++					 }
++                break;
+             case QEMU_OPTION_no_acpi:
+                 acpi_enabled = 0;
+                 break;
+@@ -4239,6 +4276,8 @@
+         exit(1);
+     }
+ 
++	parse_vcpu_opts(machine_class);
++
+     /*
+      * Get the default machine options from the machine if it is not already
+      * specified either by the configuration file or by the command line.
