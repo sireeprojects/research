@@ -1,0 +1,15 @@
+# enable root login Ubuntu 20.04
+- set root password from a user login
+sudo passwd
+
+- sudo vi /etc/gdm3/custom.conf
+AllowRoot=true
+under [daemon]
+
+- sudo vi /etc/pam.d/gdm-password
+add a '#' before
+auth required pam_succeed_if.so user != root quiet_success
+
+- reboot
+
+--------------------------------------------------------------------------------
