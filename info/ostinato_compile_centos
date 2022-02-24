@@ -60,3 +60,5 @@ ip addr add 1.1.1.1/24 brd + dev tp0 label tp0:0
 ip link set dev tp0 up
 
 --------------------------------------------------------------------------------
+# deploy
+https://github.com/probonopd/linuxdeployqt
