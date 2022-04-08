@@ -1,4 +1,4 @@
-#define VHOST_PATH "/tmp/emulation/sock"
+#define VHOST_PATH "/tmp/vm.sock"
 #define NUM_RX_FRAMES 1000000 // nof pkts that will be sent to RX of load module
 
 #define _GNU_SOURCE

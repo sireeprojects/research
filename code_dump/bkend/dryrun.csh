@@ -2,13 +2,13 @@
     -netdev user,id=mynet0 \
     -device e1000,netdev=mynet0,mac=52:54:00:02:d9:0a\
     \
-    -chardev socket,id=char0,path=/tmp/emulation/sock \
-    -netdev vhost-user,id=mynet1,chardev=char0 \
+    -chardev socket,id=char0,path=/tmp/vm.sock \
+    -netdev vhost-user,id=mynet1,chardev=char0,vhostforce=on \
     -device virtio-net-pci,netdev=mynet1,mac=52:54:00:02:d9:0b \
     \
     -object memory-backend-file,id=mem,size=1024M,mem-path=/dev/hugepages,share=on \
     -vnc :1000 -vga std \
-    -numa node,memdev=mem -mem-prealloc /sw/vm_images/CentOS9-Minimal-test/CentOS9-Minimal.qcow2\
+    -numa node,memdev=mem -mem-prealloc /sw/vm_images/CentOS9Min.qcow2 \
 
 # /sw/tools/qemu-6.2.0/bin/qemu-system-x86_64 \
 #     -name cdn_avip_vlm_0,debug-threads=on \
