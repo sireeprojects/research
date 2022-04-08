@@ -1,0 +1,62 @@
+--------------------------------------------------------------------------------
+# Basic housekeeping
+change display resolution if it is too small to work
+change background to a plain color
+download luxi mono font and install, set this font for terminal
+terminal cell spacing, height: 1.05
+uncheck terminal bell
+under colors tab select black on white
+under general, uncheck show menubar
+select light/default theme for terminal
+
+# enable virsh console 
+inside the VM guest, execute this
+systemctl enable serial-getty@ttyS0.service
+systemctl start serial-getty@ttyS0.service
+reboot
+
+# (optional) update kernel CentOS7 (should be done as root or using sudo)
+yum -y update
+yum -y install yum-plugin-fastestmirror
+rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
+rpm -Uvh https://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm
+yum repolist
+yum --enablerepo=elrepo-kernel install -y kernel-ml
+
+-- update grub 
+awk -F\' '$1=="menuentry " {print i++ " : " $2}' /etc/grub2.cfg
+grub2-set-default 0
+grub2-mkconfig -o /boot/grub2/grub.cfg
+reboot
+
+-- check
+uname -snr
+
+
+yum -y install epel-release
+
+# change default shell
+-- if tcsh is not found
+yum install -y tcsh 
+
+-- edit /etc/passwd
+replace bash with tcsh
+
+# tools
+yum install -y gvim 
+
+# udpate .cshrc file
+# update .vimrc and .gvimrc
+
+# Install GCC 11.2.0
+# https://linuxhostsupport.com/blog/how-to-install-gcc-on-centos-7/
+wget http://ftp.mirrorservice.org/sites/sourceware.org/pub/gcc/releases/gcc-11.2.0/gcc-11.2.0.tar.gz
+tar -zxvf gcc-11.2.0.tar.gz
+cd gcc-11.2.0
+./contrib/download_prerequisites
+./configure --disable-multilib --enable-languages=c,c++ --prefix=<>
+make -j 4
+make install
+
+export PATH=/usr/local/gcc-8.3.0/bin:$PATH
+export LD_LIBRARY_PATH=/usr/local/gcc-8.3.0/lib:/usr/local/mpfr-4.0.2/lib:/usr/local/gmp-6.1.2/lib:/usr/local/mpc-1.1.0/lib:/usr/local/isl-0.21/lib:$LD_LIBRARY_PATH
