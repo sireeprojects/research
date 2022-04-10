@@ -15,6 +15,10 @@
 #include <sys/mman.h>    // MAP_FAILED
 #include <time.h>        // clock_t clock()
 #include <unistd.h> 
+#include <fcntl.h>
+
+int wspipe;
+int fhdone = 0;
 
 #define MAX_LEN                         10240
 #define VHOST_USER_PROTOCOL_F_MQ        0
@@ -81,6 +85,35 @@
 #else 
     #define DMSG(...) {}
 #endif
+
+// PCAP streaming
+
+struct PACKED file_header {
+    unsigned int magic           : 32;
+    unsigned short version_major : 16;
+    unsigned short version_minor : 16;
+    unsigned int thiszone        : 32;
+    unsigned int sigfigs         : 32;
+    unsigned int snaplen         : 32;
+    unsigned int linktype        : 32;
+};
+
+struct PACKED pkt_hdr {
+    unsigned int tv_sec  : 32;
+    unsigned int tv_usec : 32;
+    unsigned int caplen  : 32;
+    unsigned int len     : 32;
+};
+
+struct PACKED eth_pkt {
+   unsigned long dst : 48;
+   unsigned long src : 48;
+   unsigned short lt : 16;
+   char payload[46];
+   unsigned int fcs : 32;
+};
+
+
 
 FILE *logfile;
 extern int errno;
@@ -854,9 +887,36 @@ void *dequeue(void *bknd) {
                 exit(1);
             }
 
-            MSG("Packet received")
+            // MSG("Packet received");
+            printf("packet received of length: %d\n", len); fflush(stdout);
+
             // NOTE: we are not doing anything with the pkt
 
+            if (fhdone == 0) {
+                struct file_header filehdr;
+                // set file header fields
+                filehdr.magic= 0xa1b2c3d4;
+                filehdr.version_major = 2;  
+                filehdr.version_minor = 4;  
+                filehdr.thiszone = 0;       
+                filehdr.sigfigs = 0;        
+                filehdr.snaplen = 4194304;
+                filehdr.linktype = 1;     
+                // send file header to pipe. should be done only once once
+                write(wspipe, (char*)&filehdr,sizeof(struct file_header));
+                fhdone = 1;
+            }
+
+            // send packet to pipe
+            struct pkt_hdr pkthdr;
+            pkthdr.tv_sec  = 0;
+            pkthdr.tv_usec = 0;
+            pkthdr.caplen = (len-18);
+            pkthdr.len = (len-18);
+
+            // write the pkt to wireshark
+            write(wspipe, (char*)&pkthdr, sizeof(struct pkt_hdr));
+            write(wspipe, buf+18, (len-18));
 
             // decode control pkt to detect start/stop of streams
             // memcpy (&meta, buf, 48);
@@ -905,6 +965,10 @@ void *dequeue(void *bknd) {
 int main(int argc, char **argv) {
     // create log file to collect all printf's
     logfile = fopen("run.log", "w");
+
+    // open a named pipe that was already created with mkfifo
+    wspipe = open("/tmp/myFIFO", O_WRONLY | O_NONBLOCK);
+
 
     // create a backend device
     struct backend *bk = (struct backend*)malloc(sizeof(struct backend));

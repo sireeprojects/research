@@ -14,7 +14,7 @@
     -no-hpet   \
     -boot strict=on   \
     -device virtio-serial-pci,id=virtio-serial0,bus=pci.0,addr=0x6   \
-    -drive file=/sw/vm_images/CentOS9-nonm.qcow2,format=qcow2,if=none,id=drive-virtio-disk0   \
+    -drive file=/sw/vm_images/CentOS7-sparse.qcow2,format=qcow2,if=none,id=drive-virtio-disk0   \
     -device virtio-blk-pci,scsi=off,bus=pci.0,addr=0x7,drive=drive-virtio-disk0,id=virtio-disk0,bootindex=1   \
     -chardev pty,id=charserial0   \
     -device isa-serial,chardev=charserial0,id=serial0   \
@@ -30,6 +30,7 @@
     -netdev vhost-user,id=mynet1,chardev=char0,vhostforce=on \
     -device virtio-net-pci,netdev=mynet1,id=vh1,mac="52:54:00:02:d9:01",bus=pci.0,addr=0xa 
 
+    #-drive file=/sw/vm_images/CentOS9-nonm.qcow2,format=qcow2,if=none,id=drive-virtio-disk0   \
 
 
 #-netdev tap,id=hostnet0,vhost=on,script=../csh/qemu-ifup.csh \
