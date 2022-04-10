@@ -23,13 +23,20 @@
     -device virtio-balloon-pci,id=balloon0,bus=pci.0,addr=0x8   \
     -msg timestamp=on \
     \
-    -netdev user,id=mynet0,ipv6=off \
-    -device e1000,netdev=mynet0,id=vh0,mac="52:54:00:02:d9:00",bus=pci.0,addr=0x9 \
+    -netdev user,id=user0 \
+    -device e1000,netdev=user0,mac="52:54:00:02:d9:00",bus=pci.0,addr=0x9 \
     \
-    -chardev socket,id=char0,path=/tmp/vm.sock \
-    -netdev vhost-user,id=mynet1,chardev=char0,vhostforce=on \
-    -device virtio-net-pci,netdev=mynet1,id=vh1,mac="52:54:00:02:d9:01",bus=pci.0,addr=0xa 
+    -netdev tap,id=mytap,ifname=tap0,script=no,downscript=no \
+    -device e1000,netdev=mytap,mac="52:54:00:02:d9:01",bus=pci.0,addr=0xa \
+    &
+
+
+    #-device e1000,netdev=user0,mac="52:54:00:02:d9:00",bus=pci.0,addr=0x9 \
+    #-device e1000,netdev=tap0,mac="52:54:00:02:d9:01",bus=pci.0,addr=0x9 \
 
 #-netdev tap,id=hostnet0,vhost=on,script=../csh/qemu-ifup.csh \
 #-device virtio-net-pci,netdev=hostnet0,id=net0,mac="00:60:2f:00:00:01",bus=pci.0,addr=0x3 \
 
+# -chardev socket,id=char0,path=/tmp/vm.sock \
+# -netdev vhost-user,id=mynet1,chardev=char0,vhostforce=on \
+# -device virtio-net-pci,netdev=mynet1,id=vh1,mac="52:54:00:02:d9:01",bus=pci.0,addr=0xa 

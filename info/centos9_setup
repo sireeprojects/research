@@ -129,6 +129,25 @@ make install
 --------------------------------------------------------------------------------
 dnf install -y bridge-utils
 
+--------------------------------------------------------------------------------
+# disable ipv6
+vim /etc/sysctl.conf
+Add the following :
+net.ipv6.conf.all.disable_ipv6 = 1
+net.ipv6.conf.default.disable_ipv6 = 1
+reboot
+
+--------------------------------------------------------------------------------
+# disable MDNS broadcast
+firewall-cmd --permanent --direct --add-rule ipv6 filter OUTPUT 0 -p udp --dport=5353 -j DROP
+firewall-cmd --permanent --direct --add-rule ipv4 filter OUTPUT 0 -p udp --dport=5353 -j DROP
+firewall-cmd --reload
+
+--------------------------------------------------------------------------------
+# disable ARP announcement
+net.ipv4.conf.eth0.arp_ignore = 1
+net.ipv4.conf.eth0.arp_announce = 2
+
 # RESOURCE
 --------------------------------------------------------------------------------
 # .cshrc
