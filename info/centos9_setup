@@ -1,62 +1,228 @@
 --------------------------------------------------------------------------------
+# enable virsh console 
+inside the VM guest, execute this
+systemctl enable serial-getty@ttyS0.service
+systemctl start serial-getty@ttyS0.service
+
+--------------------------------------------------------------------------------
 # Basic housekeeping
 change display resolution if it is too small to work
 change background to a plain color
 download luxi mono font and install, set this font for terminal
+reduce desktop icon size
 terminal cell spacing, height: 1.05
 uncheck terminal bell
 under colors tab select black on white
 under general, uncheck show menubar
 select light/default theme for terminal
+change power setting to disable screen blank
 
-# enable virsh console 
-inside the VM guest, execute this
-systemctl enable serial-getty@ttyS0.service
-systemctl start serial-getty@ttyS0.service
-reboot
+--------------------------------------------------------------------------------
+# reboot
 
-# (optional) update kernel CentOS7 (should be done as root or using sudo)
-yum -y update
-yum -y install yum-plugin-fastestmirror
-rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
-rpm -Uvh https://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm
-yum repolist
-yum --enablerepo=elrepo-kernel install -y kernel-ml
+--------------------------------------------------------------------------------
+# steps below can be done in virsh console for copy/paste from host
 
--- update grub 
-awk -F\' '$1=="menuentry " {print i++ " : " $2}' /etc/grub2.cfg
-grub2-set-default 0
+# change default shell to tcsh
+dnf install -y tcsh
+vi /etc/passwd
+    replace bash with tcsh
+    update .tcshrc and .cshrc (see below)
+
+dnf install -y gvim
+    update .vimrc (see below)
+
+--------------------------------------------------------------------------------
+# disable kernel list during boot
+vi /etc/default/grub
+GRUB_TIMEOUT=0
 grub2-mkconfig -o /boot/grub2/grub.cfg
-reboot
 
--- check
-uname -snr
+--------------------------------------------------------------------------------
+# autologin root
+vi /etc/gdm/custom.conf
+add the following under [daemon]
+AutomaticLoginEnable=true
+AutomaticLogin=root
 
+--------------------------------------------------------------------------------
+# enable minimize maximize buttons, issue the following cmd on a terminal
+gsettings set org.gnome.desktop.wm.preferences button-layout ":minimize,maximize,close"
 
-yum -y install epel-release
+--------------------------------------------------------------------------------
+# CentOS-9-Stream epel update
+dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+dnf install -y epel-next-release
 
-# change default shell
--- if tcsh is not found
-yum install -y tcsh 
+--------------------------------------------------------------------------------
+# install htop 
+dnf install -y htop
 
--- edit /etc/passwd
-replace bash with tcsh
+--------------------------------------------------------------------------------
+# install wmctrl
+yum install -y libXmu-devel glib2 glib2-devel 
+https://github.com/dancor/wmctrl.git
+./configure; make ; make install
 
-# tools
-yum install -y gvim 
+--------------------------------------------------------------------------------
+# install qt
+dnf install mesa-libGL-devel
+add the following in .cshrc
+setenv PATH /opt/Qt5.9.7/5.9.7/gcc_64/bin:${PATH}
+setenv LD_LIBRARY_PATH /opt/Qt5.9.7/5.9.7/gcc_64/lib:${LD_LIBRARY_PATH}
 
-# udpate .cshrc file
-# update .vimrc and .gvimrc
-
-# Install GCC 11.2.0
-# https://linuxhostsupport.com/blog/how-to-install-gcc-on-centos-7/
-wget http://ftp.mirrorservice.org/sites/sourceware.org/pub/gcc/releases/gcc-11.2.0/gcc-11.2.0.tar.gz
-tar -zxvf gcc-11.2.0.tar.gz
-cd gcc-11.2.0
-./contrib/download_prerequisites
-./configure --disable-multilib --enable-languages=c,c++ --prefix=<>
+--------------------------------------------------------------------------------
+# install protobuf
+git clone https://github.com/google/protobuf.git
+cd protobuf
+./autogen.sh
+./configure
 make -j 4
 make install
 
-export PATH=/usr/local/gcc-8.3.0/bin:$PATH
-export LD_LIBRARY_PATH=/usr/local/gcc-8.3.0/lib:/usr/local/mpfr-4.0.2/lib:/usr/local/gmp-6.1.2/lib:/usr/local/mpc-1.1.0/lib:/usr/local/isl-0.21/lib:$LD_LIBRARY_PATH
+add protobuf paths in .cshrc
+setenv PATH /usr/local/bin:${PATH}
+setenv LD_LIBRARY_PATH /usr/local/lib:${LD_LIBRARY_PATH}
+
+--------------------------------------------------------------------------------
+# install ostinato
+yum install mesa-libGL-devel mesa-libGLU-devel
+yum install -y libnl3 libnl3-devel
+yum install -y libpcap libpcap-devel
+git clone https://github.com/pstavirs/ostinato.git
+
+vi protobuf.pri
+<BEFORE>
+PROTOPATH += .
+PROTOPATHS = 
+for(p, PROTOPATH):PROTOPATHS += --proto_path=$${p}
+
+<AFTER>
+PROTOPATH += /usr/local/bin /root/ostinato/common
+PROTOPATHS = 
+for(p, PROTOPATH):PROTOPATHS += --proto_path=$${p}
+
+qmake PREFIX=<path>
+make -j 4
+make install
+
+for pcap error
+wget https://www.tcpdump.org/release/libpcap-1.10.1.tar.gz
+./configure; make -j 4; make install
+
+--------------------------------------------------------------------------------
+# install wireshark
+git clone https://gitlab.com/wireshark/wireshark.git
+cd wireshark
+tools/rpm-setup.sh --install-optional
+mkdir build
+cd build
+dnf install -y cmake3
+dnf install -y libgcrypt libgcrypt-devel
+dnf install c-ares c-ares-devel
+dnf install 'perl(English)'
+dnf install 'perl(open)'
+cmake -DCMAKE_INSTALL_PREFIX=<path> ..
+make -j 4
+make install
+
+--------------------------------------------------------------------------------
+dnf install -y bridge-utils
+
+# RESOURCE
+--------------------------------------------------------------------------------
+# .cshrc
+
+#autocomplete
+set filec
+set autolist
+set nobeep
+set complete='enhance'
+
+#others
+setenv PATH /root/scripts:$PATH
+setenv PATH /sbin:$PATH
+
+#Prompt color
+set prompt = "%{\033[32m%}(%n@%m %c)%{\033[0m%} "
+
+#Command aliases
+alias g            grep -n --color=always
+alias c            clear -x
+alias la           ls -a
+alias ls           ls --color=auto --group-directories-first
+alias vi           gvim
+alias . cd ..
+alias .. cd ../..
+alias ... cd ../../..
+alias .... cd ../../../..
+alias ..... cd ../../../../..
+alias rp    'set prompt = "%{\033[31m%}(%n@%m %c)%{\033[0m%} "'
+alias gp    'set prompt = "%{\033[32m%}(%n@%m %c)%{\033[0m%} "'
+
+bindkey "^[[3~" delete-char
+bindkey -k up history-search-backward
+bindkey -k down history-search-forward
+
+setenv LS_COLORS 'rs=0:di=00;35:ln=00;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=01;05;37;41:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=00;32'
+
+#setenv LD_LIBRARY_PATH
+
+rp
+clear -x
+
+--------------------------------------------------------------------------------
+# .vimrc
+
+syntax on
+set cin
+set hls
+set smartindent
+set expandtab
+%retab
+set tabstop=4
+set shiftwidth=4
+set guioptions=-M
+set textwidth=80
+set ruler
+set backspace=2
+set guioptions+=a
+set showmatch
+set wrap
+map <S-Insert> <MiddleMouse>
+map! <S-Insert> <MiddleMouse>
+"quit/save
+map <F2> :w!
+map <F3> :wq!
+map <F4> :q!
+" comment current line in insert & command mode
+map! <F5> <Esc>^i// <Esc><F2>
+map  <F5> ^i// <Esc><F2>
+map  <F10> gf
+map  <F11> :e#
+map <F6> :s/^/\/\/ /g
+map <F12> :!make
+filetype plugin on
+map <F6> ^xxx
+
+set t_Co=256
+set pastetoggle=<F9>
+set cindent
+set cinkeys=0{,0},!^F,o,O,e " default is: 0{,0},0),:,0#,!^F,o,O,e
+
+set guifont=Luxi\ Mono\ 13
+map <silent> <F11> :call system("wmctrl -ir " . v:windowid . " -b toggle,fullscreen")<CR>
+
+set nu
+set wrap!
+hi CursorLineNr ctermbg=225 term=none cterm=none
+hi CursorLine ctermbg=225 term=none cterm=none
+set cursorline
+hi Todo ctermbg=white ctermfg=red
+hi Type ctermfg=5
+set linespace=5
+set lines=40 columns=150
+hi cComment2String guifg=blue
+hi cNumber guifg=blue
+
+--------------------------------------------------------------------------------
