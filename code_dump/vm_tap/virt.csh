@@ -24,12 +24,15 @@
     -msg timestamp=on \
     \
     -netdev user,id=user0 \
-    -device e1000,netdev=user0,mac="52:54:00:02:d9:00",bus=pci.0,addr=0x9 \
+    -device e1000,netdev=user0,mac="52:54:00:02:d9:00" \
     \
     -netdev tap,id=mytap,ifname=tap0,script=no,downscript=no \
-    -device e1000,netdev=mytap,mac="52:54:00:02:d9:01",bus=pci.0,addr=0xa \
+    -device virtio-net,netdev=mytap,mac="52:54:00:02:d9:01" \
+    \
     &
 
+    #-netdev socket,id=sock1,listen=:8080 \
+    #-device e1000,netdev=sock1,mac="52:54:00:02:d9:02",bus=pci.0,addr=0xb \
 
     #-device e1000,netdev=user0,mac="52:54:00:02:d9:00",bus=pci.0,addr=0x9 \
     #-device e1000,netdev=tap0,mac="52:54:00:02:d9:01",bus=pci.0,addr=0x9 \

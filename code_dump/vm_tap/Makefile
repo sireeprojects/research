@@ -2,4 +2,4 @@ default:
 	gcc bkend.c -Wno-address-of-packed-member -o bkend.run
 
 clean:
-	rm -f bkend.run run.log *.out
+	rm -f bkend.run run.log *.out log.txt

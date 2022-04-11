@@ -567,12 +567,12 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
-	/* apply the compiled filter */
-	if (pcap_setfilter(handle, &fp) == -1) {
-		fprintf(stderr, "Couldn't install filter %s: %s\n",
-		    filter_exp, pcap_geterr(handle));
-		exit(EXIT_FAILURE);
-	}
+// 	/* apply the compiled filter */
+// 	if (pcap_setfilter(handle, &fp) == -1) {
+// 		fprintf(stderr, "Couldn't install filter %s: %s\n",
+// 		    filter_exp, pcap_geterr(handle));
+// 		exit(EXIT_FAILURE);
+// 	}
 
 	/* now we can set our callback function */
 	pcap_loop(handle, num_packets, got_packet, NULL);
