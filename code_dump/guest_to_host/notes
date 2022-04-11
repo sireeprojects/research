@@ -1,0 +1,37 @@
+--------------------------------------------------------------------------------
+Create a tap device on the guest and connect it to the tap device on the host
+--------------------------------------------------------------------------------
+
+<< Tested on CentOS9 >>
+
+# create tap device on the host ans assign IP address
+ip tuntap add tap0 mode tap
+ifconfig tap0 10.0.0.1/30
+ifconfig tap0 up (only if the interface is not up)
+
+# create tap device on guest
+-netdev tap,id=mytap,ifname=tap0,script=no,downscript=no
+-device virtio-net,netdev=mytap,mac="52:54:00:02:d9:01"
+
+# configure tap device inside the guest
+-- When the VM is started, it will take a while to load since it will dry to
+assign an IP address for the tap device using DHCP. Since there is no dhcp server
+it will keep hunting and after some timeout and then start the gnome desktop
+-- From inside the VM, network settings of the tap interface
+    - disable IPv4
+    - disable IPv6
+    - restart the tap interface
+-- after this, on subsequent reboot, the guest will not try to assign ip address
+
+# sending and receving frames
+-- host
+    - can send frame using ostinato
+    - can send raw frame from c code
+    - can read only using pcap
+
+-- guest
+    - can send frame using ostinato
+    - can send raw frame from c code
+    - can read using pcap
+    - can read using c program
+

@@ -1,8 +1,8 @@
-qemu-system-x86_64 \
+/sw/tools/qemu-6.2.0/bin/qemu-system-x86_64 \
     -name Centos9 \
-    -machine pc-i440fx-6.2,accel=kvm,usb=off,dump-guest-core=off   \
+    -machine pc-i440fx-6.2,accel=kvm,usb=off,dump-guest-core=off \
     -m 1024 \
-    -cpu Skylake-Client-IBRS,ss=on,vmx=on,pdcm=on,hypervisor=on,tsc-adjust=on,clflushopt=on,umip=on,md-clear=on,stibp=on,arch-capabilities=on,ssbd=on,xsaves=on,pdpe1gb=on,ibpb=on,ibrs=on,amd-stibp=on,amd-ssbd=on,rsba=on,skip-l1dfl-vmentry=on,pschange-mc-no=on,hle=off,rtm=off   \
+    -cpu Skylake-Client-IBRS,ss=on,vmx=on,pdcm=on,hypervisor=on,tsc-adjust=on,clflushopt=on,umip=on,md-clear=on,stibp=on,arch-capabilities=on,ssbd=on,xsaves=on,pdpe1gb=on,ibpb=on,ibrs=on,amd-stibp=on,amd-ssbd=on,rsba=on,skip-l1dfl-vmentry=on,pschange-mc-no=on,hle=off,rtm=off \
     -object memory-backend-file,id=mem,size=1024M,mem-path=/dev/hugepages,share=on \
     -numa node,memdev=mem -mem-prealloc \
     -smp 4,sockets=4,cores=1,threads=1 \
@@ -27,5 +27,4 @@ qemu-system-x86_64 \
     -device e1000,netdev=user0,mac="52:54:00:02:d9:00" \
     \
     -netdev tap,id=mytap,ifname=tap0,script=no,downscript=no \
-    -device virtio-net,netdev=mytap,mac="52:54:00:02:d9:01" \
-    \ &
+    -device virtio-net,netdev=mytap,mac="52:54:00:02:d9:01"
