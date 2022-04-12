@@ -53,8 +53,14 @@ lsmod | g dummy
 ## wirshark:ok libpcap:sniffer:ok
 ip link add tp0 type dummy
 ifconfig tp0 hw ether C8:D7:4A:4E:47:50
-ip addr add 1.1.1.1/24 dev tp0
+ip addr add 10.1.1.1/24 dev tp0
 ip link set tp0 up
+
+ip link add tp1 type dummy
+ifconfig tp1 hw ether C8:D7:4A:4E:47:51
+ip addr add 10.1.1.2/24 dev tp1
+ip link set tp1 up
+
 
 ##remove:ok
 ip addr del 1.1.1.1/24 brd + dev tp0 label tp0:0
@@ -76,7 +82,10 @@ ip link set tap0 up
 
 #add tap interface
 ip tuntap add tap0 mode tap
-ifconfig tap0 10.0.0.1/30
+ifconfig tap0 10.0.0.1/24
+
+ip tuntap add tap1 mode tap
+ifconfig tap1 10.0.0.2/24
 
 --------------------------------------------------------------------------------
 # deploy

@@ -1,0 +1,40 @@
+--------------------------------------------------------------------------------
+<< Tested on CentOS9 >>
+vhost_vsock guest to host communication
+--------------------------------------------------------------------------------
+# enablel vhost-vsock in host kernel
+modprobe vhost_vsock
+
+# check loaded module
+lsmod | grep vsock , the follwing should be displayed
+    X:vhost_vsock  ##### 0
+
+# more check
+the following 2 devices should be available
+/dev/vhost_vsock
+/dev/vsock
+
+if /dev/vsock is not available, then execute
+modprobe vsock
+
+# start guest using qemu with the following device
+-device vhost-vsock-pci,id=vhost-vsock-pci0,guest-cid=3
+
+# programming notes
+nc-vsock.c -> server -> vsock_listen(..) 
+nc-vhost.c -> client -> vsock_connect(..)    
+
+# regarding vhost socket address
+A VM sockets address is comprised of a context ID and a port; just like an IP
+address and TCP/UDP port. The context ID (CID) is analogous to an IP address,
+and is represented using an unsigned 32-bit integer. It identifies a given machine
+as either a hypervisor or a virtual machine. Several addresses are reserved, including
+0, 1, and the maximum value for a 32-bit integer: 0xffffffff. The hypervisor is
+always assigned a CID of 2, and VMs can be assigned any CID between 3 and 0xffffffff-1.
+
+A port is analogous to a typical TCP or UDP port, and is represented using an
+unsigned 32-bit integer. Many different services can run on the same host by binding
+to different ports, and each port can serve multiple connections concurrently. As with
+IP ports, ports in the range 0-1023 are considered “privileged”, and only root or a
+user with CAP_NET_ADMIN may bind to these ports.
+
