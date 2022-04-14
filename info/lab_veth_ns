@@ -1,0 +1,97 @@
+#-------------------------------------------------------------------------------
+
+# create veth pair
+ip link add v0 type veth peer name v1
+
+# create a network namespace
+ip netns add ns0
+
+# attach one of the veth interfaces to the network namespace
+ip link set v0 netns ns0
+
+# bring up the interfaces (note below we've to now run ip netns exec ns0 for veth0
+ip link set v1 up
+ip netns exec ns0 ip link set v0 up
+
+# assign IP addresses
+ip addr add 10.1.0.2/24 dev v1
+ip netns exec ns0 ip addr add 10.1.0.1/24 dev v0
+
+#-------------------------------------------------------------------------------
+
+# create veth pair
+ip link add v2 type veth peer name v3
+
+# create a network namespace
+ip netns add ns1
+
+# attach one of the veth interfaces to the network namespace
+ip link set v2 netns ns1
+
+# bring up the interfaces (note below we've to now run ip netns exec test for v2
+ip link set v3 up
+ip netns exec ns1 ip link set v2 up
+
+# assign IP addresses
+ip addr add 10.1.0.3/24 dev v3
+ip netns exec ns1 ip addr add 10.1.0.4/24 dev v2
+
+#-------------------------------------------------------------------------------
+
+# bridge v1 and v3
+brctl addbr br0
+brctl addif br0 v1
+brctl addif br0 v3
+ifconfig br0 up
+
+#-------------------------------------------------------------------------------
+
+# start iperf server
+ip netns exec ns0 iperf3 -s
+
+# start iperf client
+ip netns exec ns1 iperf3 -c 10.1.0.1
+
+#-------------------------------------------------------------------------------
+
+# change default gateway temporarily
+ip netns exec ns0 ip route replace default via 10.1.0.0 dev v0
+
+# permanently
+sudo vi /etc/sysconfig/network
+GATEWAY=192.168.91.10
+
+#-------------------------------------------------------------------------------
+
+
+# issues and resolutions
+(ostinato:5061): dbind-WARNING **: 02:39:53.042: Couldn't connect to accessibility bus: Failed to connect to socket 00007: Connection refused
+(root@localhost info) setenv NO_AT_BRIDGE 1
+
+# add static route
+ip route add 172.16.5.0/24 via 10.0.0.101 dev eth0
+
+ip netns exec ns0 iperf3 -s
+ip netns exec ns1 iperf3 -c 10.1.0.1
+
+ # static arp entry (temporary)
+-- add
+arp -i v1 -s 10.1.0.2 2a:f8:88:0d:f7:b8
+
+--delete
+arp -d 10.0.0.2
+
+-- show
+arp -a -n
+arp -a
+
+arp -i v1 -s 10.1.0.2 2a:f8:88:0d:f7:b8
+arp -i v3 -s 10.1.0.3 b2:fc:ea:ad:59:b8
+
+ip netns exec ns0 arp -i v0 -s 10.1.0.1 02:31:17:81:b7:41
+ip netns exec ns0 arp -i v2 -s 10.1.0.4 26:f7:5c:fb:25:37
+
+
+ip netns exec ns1 arp -i v0 -s 10.1.0.1 02:31:17:81:b7:41
+ip netns exec ns1 arp -i v2 -s 10.1.0.4 26:f7:5c:fb:25:37
+
