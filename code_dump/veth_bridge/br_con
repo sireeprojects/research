@@ -1,0 +1,4 @@
+brctl addbr br0
+brctl addif br0 v1
+brctl addif br0 v3
+ifconfig br0 up

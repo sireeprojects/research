@@ -1,0 +1,4 @@
+brctl delif br0 v1
+brctl delif br0 v3
+ifconfig br0 down
+brctl delbr br0

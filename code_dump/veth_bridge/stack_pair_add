@@ -1,0 +1,45 @@
+#-------------------------------------------------------------------------------
+
+# create veth pair
+ip link add v0 type veth peer name v1
+
+# create a network namespace
+ip netns add ns0
+
+# attach one of the veth interfaces to the network namespace
+ip link set v0 netns ns0
+
+# bring up the interfaces (note below we've to now run ip netns exec ns0 for veth0
+ip link set v1 up
+ip netns exec ns0 ip link set v0 up
+
+# assign IP addresses
+ip addr add 10.1.0.2/24 dev v1
+ip netns exec ns0 ip addr add 10.1.0.1/24 dev v0
+
+ethtool -K v1 rx off tx off
+ip netns exec ns0 ethtool -K v0 rx off tx off
+
+#-------------------------------------------------------------------------------
+
+# create veth pair
+ip link add v2 type veth peer name v3
+
+# create a network namespace
+ip netns add ns1
+
+# attach one of the veth interfaces to the network namespace
+ip link set v2 netns ns1
+
+# bring up the interfaces (note below we've to now run ip netns exec test for v2
+ip link set v3 up
+ip netns exec ns1 ip link set v2 up
+
+# assign IP addresses
+ip addr add 10.1.0.3/24 dev v3
+ip netns exec ns1 ip addr add 10.1.0.4/24 dev v2
+
+ethtool -K v3 rx off tx off
+ip netns exec ns1 ethtool -K v2 rx off tx off
+
+#-------------------------------------------------------------------------------

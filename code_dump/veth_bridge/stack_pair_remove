@@ -1,0 +1,4 @@
+ip link del v1
+ip link del v3
+ip netns del ns0
+ip netns del ns1
