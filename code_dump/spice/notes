@@ -1,0 +1,34 @@
+# install depot tools
+git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
+no compiles, add this path to PATH
+
+#
+gclient config <path to the meson src directory>
+-- or run this inside the src directory 
+gclient config .
+
+#
+gclient runhooks
+ninja -C build/ (to compile)
+ninja -C build/ install
+
+# Spice install
+https://gitlab.freedesktop.org/spice/spice.git
+./autogen.sh --disable-opus
+    dnf install -y autoconf-archive
+    dnf install -y libjpeg-devel
+    pip3 install pyparsing
+
+./configure --prefix=/sw/tools/spice    
+
+make (do not use -j, runmake again if it fails)
+make install
+
+# install qemu with spice suport
+# testing
+
+setenv PKG_CONFIG_PATH /usr/local/lib/pkgconfig
+pkg-config --cflags spice-protocol spice-server
+
+above pkgconfig path will point to spice install
+./configure --prefix=/sw/tools/qemu-6.2.0.spice --target-list=x86_64-softmmu --enable-spice
