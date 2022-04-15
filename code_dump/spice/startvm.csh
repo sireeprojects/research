@@ -14,7 +14,7 @@
     -no-hpet \
     -boot strict=on \
     -device virtio-serial-pci,id=virtio-serial0,bus=pci.0,addr=0x6 \
-    -drive file=/sw/vm_images/CentOS9-Dev-SpiceTest.qcow2,format=qcow2,if=none,id=drive-virtio-disk0 \
+    -drive file=/sw/vm_images/CentOS9-Dev.qcow2,format=qcow2,if=none,id=drive-virtio-disk0 \
     -device virtio-blk-pci,scsi=off,bus=pci.0,addr=0x7,drive=drive-virtio-disk0,id=virtio-disk0,bootindex=1 \
     -chardev pty,id=charserial0 \
     -device isa-serial,chardev=charserial0,id=serial0 \
@@ -26,3 +26,5 @@
     -device e1000,netdev=user0,mac="52:54:00:02:d9:00" &
 
     #-vnc 127.0.0.1:0 -vga std -global VGA.vgamem_mb=16 \
+    # -vga virtio \
+    # -vga qxl \
