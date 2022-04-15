@@ -1,4 +1,6 @@
-/sw/tools/qemu-6.2.0/bin/qemu-system-x86_64 \
+#/sw/tools/qemu-6.2.0/bin/qemu-system-x86_64 \
+
+/sw/tools/qemu-6.2.0.spice/bin/qemu-system-x86_64 \
     -name Centos9 \
     -machine pc-i440fx-6.2,accel=kvm,usb=off,dump-guest-core=off \
     -m 1024 \
@@ -21,10 +23,17 @@
     -device virtio-balloon-pci,id=balloon0,bus=pci.0,addr=0x8 \
     -msg timestamp=on \
     -vga qxl \
-    \
-    -netdev user,id=user0 \
-    -device e1000,netdev=user0,mac="52:54:00:02:d9:00" &
+    -netdev user,id=user0,hostfwd=tcp::10022-:22 \
+    -device e1000,netdev=user0,mac="52:54:00:02:d9:00" \
+    -fsdev local,security_model=passthrough,id=fsdev0,path=/tmp/vmshare -device virtio-9p-pci,id=fs0,fsdev=fsdev0,mount_tag=hostshare \
+    &
+    
 
     #-vnc 127.0.0.1:0 -vga std -global VGA.vgamem_mb=16 \
     # -vga virtio \
     # -vga qxl \
+    # -netdev user,id=user0,hostfwd=tcp::10022-:22 \ (from host) ssh -p 10022 localhost
+
+    #-netdev user,id=shf,smb=/tmp/vmshare \
+
+    #-virtfs local,path=/tmp/vmshare,mount_tag=host0,security_model=passthrough,id=host0 \

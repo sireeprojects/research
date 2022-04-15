@@ -31,4 +31,26 @@ setenv PKG_CONFIG_PATH /usr/local/lib/pkgconfig
 pkg-config --cflags spice-protocol spice-server
 
 above pkgconfig path will point to spice install
-./configure --prefix=/sw/tools/qemu-6.2.0.spice --target-list=x86_64-softmmu --enable-spice
+./configure --prefix=/sw/tools/qemu-6.2.0.spice --target-list=x86_64-softmmu --enable-spice --enable-virtfs
+
+
+after installing virtfs and vga = qxl, viewer window opened by itself
+i think installing gtk3 did the trick
+
+
+share filesystem
+https://www.linux-kvm.org/page/9p_virtio
+
+host
+/usr/bin/qemu-kvm -m 1024 -name f15 -drive file=/images/f15.img,if=virtio
+-fsdev local,security_model=passthrough,id=fsdev0,path=/tmp/share -device virtio-9p-pci,id=fs0,fsdev=fsdev0,mount_tag=hostshare
+
+guest
+mkdir /tmp/host_files
+mount -t 9p -o trans=virtio,version=9p2000.L hostshare /tmp/host_files
+
+enable 9p inside guest
+edit /boot/config<kerner number>
+add 
+
+
