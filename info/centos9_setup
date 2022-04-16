@@ -66,7 +66,7 @@ https://github.com/dancor/wmctrl.git
 
 --------------------------------------------------------------------------------
 # install qt
-dnf install mesa-libGL-devel
+dnf install -y mesa-libGL-devel
 add the following in .cshrc
 setenv PATH /opt/Qt5.9.7/5.9.7/gcc_64/bin:${PATH}
 setenv LD_LIBRARY_PATH /opt/Qt5.9.7/5.9.7/gcc_64/lib:${LD_LIBRARY_PATH}
@@ -88,7 +88,9 @@ setenv LD_LIBRARY_PATH /usr/local/lib:${LD_LIBRARY_PATH}
 # install ostinato
 yum install mesa-libGL-devel mesa-libGLU-devel
 yum install -y libnl3 libnl3-devel
-yum install -y libpcap libpcap-devel
+yum install -y libpcap libpcap-devel (not available)
+git clone https://github.com/the-tcpdump-group/libpcap
+./configure; make ; make install
 git clone https://github.com/pstavirs/ostinato.git
 
 vi protobuf.pri
@@ -112,6 +114,7 @@ wget https://www.tcpdump.org/release/libpcap-1.10.1.tar.gz
 
 --------------------------------------------------------------------------------
 # install wireshark
+install re2c ninja first
 git clone https://gitlab.com/wireshark/wireshark.git
 cd wireshark
 tools/rpm-setup.sh --install-optional
@@ -119,12 +122,42 @@ mkdir build
 cd build
 dnf install -y cmake3
 dnf install -y libgcrypt libgcrypt-devel
-dnf install c-ares c-ares-devel
-dnf install 'perl(English)'
-dnf install 'perl(open)'
+dnf install -y c-ares c-ares-devel
+dnf install -y 'perl(English)'
+dnf install -y 'perl(open)'
+
 cmake -DCMAKE_INSTALL_PREFIX=<path> ..
 make -j 4
 make install
+
+--------------------------------------------------------------------------------
+# Qemu install
+
+dnf install –y python3-pip
+pip3 install meson
+dnf install -y gtk3 gtk3-devel
+
+-- git clone https://gitlab.freedesktop.org/spice/spice-protocol
+meson setup build
+ninja -C build/ (to compile)
+ninja -C build/ install
+
+-- git clone https://gitlab.freedesktop.org/spice/spice.git
+dnf install -y autoconf-archive
+dnf install -y libjpeg-devel
+pip3 install pyparsing
+dnf install -y gstreamer1 gstreamer1-devel gstreamer1-plugins-bad-free gstreamer1-plugins-base gstreamer1-plugins-base-devel gstreamer1-plugins-good gstreamer1-plugins-good-gtk gstreamer1-plugins-ugly-free gstreamer1-svt-av1 gstreamer1-vaapi phonon-qt5-backend-gstreamer pipewire-gstreamer clutter-gst3 gnome-video-effects
+./autogen.sh --disable-opus
+./configure 
+make
+make install
+
+-- wget https://download.qemu.org/qemu-6.2.0.tar.xz
+setenv PKG_CONFIG_PATH /usr/local/lib/pkgconfig
+pkg-config --cflags spice-protocol spice-server
+dnf install -y libcap-ng-devel libattr-devel
+tar xf qemu-6.2.0.tar.xz
+./configure --prefix=/sw/tools/qemu-6.2.0 --target-list=x86_64-softmmu --enable-spice --enable-virtfs
 
 --------------------------------------------------------------------------------
 dnf install -y bridge-utils
@@ -136,6 +169,12 @@ Add the following :
 net.ipv6.conf.all.disable_ipv6 = 1
 net.ipv6.conf.default.disable_ipv6 = 1
 reboot
+
+/etc/default/grub
+GRUB_CMDLINE_LINUX="ipv6.disable=1 ..."
+grub2-mkconfig -o /boot/grub2/grub.cfg
+
+
 
 --------------------------------------------------------------------------------
 # disable MDNS broadcast
