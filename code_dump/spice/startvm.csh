@@ -1,5 +1,3 @@
-#/sw/tools/qemu-6.2.0/bin/qemu-system-x86_64 \
-#/sw/tools/qemu-6.2.0.spice/bin/qemu-system-x86_64 \
 qemu-system-x86_64 \
     -name Centos9 \
     -machine pc-i440fx-6.2,accel=kvm,usb=off,dump-guest-core=off \
