@@ -1,0 +1,13 @@
+https://communities.vmware.com/t5/VMware-Workstation-Pro/Shared-folders-not-available-on-Linux-guests-after-upgrading-to/td-p/1404693
+    Run this to manually enable, but not persistant across reboots
+    vmhgfs-fuse .host:/ /mnt/hgfs -o allow_other
+
+https://kb.vmware.com/s/article/60262
+    persistant shared folders
+    edit /etc/fstab and add the following line
+    vmhgfs-fuse    /mnt/hgfs    fuse    defaults,allow_other    0    0
+
+
+
+
+
