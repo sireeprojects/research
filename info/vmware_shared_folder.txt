@@ -6,8 +6,3 @@ https://kb.vmware.com/s/article/60262
     persistant shared folders
     edit /etc/fstab and add the following line
     vmhgfs-fuse    /mnt/hgfs    fuse    defaults,allow_other    0    0
-
-
-
-
-
