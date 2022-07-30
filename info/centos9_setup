@@ -280,8 +280,13 @@ hi Todo ctermbg=white ctermfg=red
 hi Type ctermfg=5
 set linespace=5
 set lines=40 columns=150
-hi cComment2String guifg=blue
-hi cNumber guifg=blue
+"hi cComment2String guifg=blue
+"hi cNumber guifg=blue
+
+hi Statement gui=NONE
+hi Type gui=NONE
+hi Keyword gui=NONE
+unlet c_comment_strings
 
 --------------------------------------------------------------------------------
 
