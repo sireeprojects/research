@@ -218,4 +218,23 @@ setenv LM_LICENSE_FILE /sw/msim/license.txt
 setenv MTI_VCO_MODE 64
 
 
+# modelsim
+if the follow errors shows up during ./configure
+error: cannot find input file: `src/Makefile.in'
+
+Working FIX
+cd to systemc directory and run this
+./config/bootstrap
+this will generate the src/Makefile.in
+
+(fix (not working) but maybe required for the above fix to work. try above fix first, if it does not work
+ then do the belwo and try the above again)
+    install automake. if automake is already installed the do the following
+    ln -s /usr/bin/aclocal /usr/bin/aclocal-1.13
+    ln -s /usr/bin/automake /usr/bin/automake-1.13
+    automake --add-missing
+
+add to PATH
+   Header files  : <SYSTEMC_HOME>/include
+   Libraries     : <SYSTEMC_HOME>/lib-linux64
 
