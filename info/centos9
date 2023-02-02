@@ -195,18 +195,27 @@ systemctl enable libvirtd
 *       so copy the contents of /usr/include/freetype2 and and paste into /usr/inlcude/
 *       do configure again
 
-#install modelsim
+#install modelsim at /sw/msim/
 ./modelsim-2020.4_Downloadly.ir.aol
 
-# copy MentorKG.exe and sfk in /sw/tools and add this to PATH
+# install MentorKG.exe dependencies
+copy MentorKG.exe to tmp
+cd /tmp and run
+wine MentorKG.exe and click ok on the dialog box
+
+# copy MentorKG.exe and sfk in /sw/msim/modeltech/linux_x86_64/ and run the
+# following commands
 ./sfk rep -yes -bin /41574989CF41564589C6415541544189D455534889FB4881ECF8000000488B8798020000/4831c0c3CF41564589C6415541544189D455534889FB4881ECF8000000488B8798020000/ -dir .
-MentorKG.exe -patch . 
+wine MentorKG.exe -patch . 
     save output to license.txt
 
-edit modeltect.vco
-    change MTI_VCO_MODE to 64
+edit the file modeltech/vco
+change MTI_VCO_MODE to 64
 
 # modelsim (.cshrc)
 setenv PATH /sw/msim/modeltech/bin:${PATH}
 setenv LM_LICENSE_FILE /sw/msim/license.txt
 setenv MTI_VCO_MODE 64
+
+
+
