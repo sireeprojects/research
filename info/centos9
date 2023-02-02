@@ -1,1 +1,212 @@
-#
+# Basic housekeeping
+* After installation, login as root
+* Open Home folder from desktop and delete unwanted folders
+* Create /sw/pics
+* Copy gray wallpaper to /sw/pics and change to gray wallpaper
+* Download and install Luxi Mono font from internet
+*       delete downloaded font after installing
+* Change terminal theme to light color
+* Change terminal font to Luxi mono
+*       font size 13, cellspacing 1.05 width, 1.10 height
+*       disable terminal bell
+* Change power setting (settings/power)
+*       set screen blank to never
+*       update automatic suspend to the longest time
+*       enable show battery percentage
+* Reduce number of workspace to 1 (settings/multitasking/fixed -> 1)
+* switch off bluetooth and WiFi    
+
+# Enable root autologin
+vi /etc/gdm/custom.conf
+add the following under [daemon]
+AutomaticLoginEnable=true
+AutomaticLogin=root
+reboot
+
+# Update CentOS repository
+dnf update (this may take some time to complete)
+dnf config-manager --set-enabled crb
+dnf install -y epel-release epel-next-release
+
+# download basic tools
+dnf install -y tcsh htop gvim bridge-utils wmctrl ntfs-3g wireshark
+
+# enable minimize maximize buttons, issue the following cmd on a terminal
+gsettings set org.gnome.desktop.wm.preferences button-layout ":minimize,maximize,close"
+
+# enable tcsh
+edit /etc/passwd and replace bash with tcsh
+
+# copy scripts directory
+
+# creat basic .cshrc using the below
+
+#autocomplete
+set filec
+set autolist
+set nobeep
+set complete='enhance'
+
+#others
+setenv PATH /root/scripts:$PATH
+setenv PATH /sbin:$PATH
+
+#Prompt color
+set prompt = "%{\033[32m%}(%n@%m %c)%{\033[0m%} "
+
+#Command aliases
+alias g            grep -n --color=always
+alias c            clear -x
+alias la           ls -a
+alias ls           ls --color=auto --group-directories-first
+alias vi           gvim
+alias . cd ..
+alias .. cd ../..
+alias ... cd ../../..
+alias .... cd ../../../..
+alias ..... cd ../../../../..
+alias rp    'set prompt = "%{\033[31m%}(%n@%m %c)%{\033[0m%} "'
+alias gp    'set prompt = "%{\033[32m%}(%n@%m %c)%{\033[0m%} "'
+
+bindkey "^[[3~" delete-char
+bindkey -k up history-search-backward
+bindkey -k down history-search-forward
+
+setenv LS_COLORS 'rs=0:di=00;35:ln=00;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=01;05;37;41:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=00;32'
+
+#setenv LD_LIBRARY_PATH
+
+rp
+clear -x
+#--------------------------------------------------------------------------
+
+# update .tcshrc to source .cshrc
+# reboot
+# delete .bash* from home directory
+
+# create basic .vimrc using the below. fix ^M for map commands
+syntax on
+set cin
+set hls
+set smartindent
+set expandtab
+%retab
+set tabstop=4
+set shiftwidth=4
+set guioptions=-M
+set textwidth=80
+set ruler
+set backspace=2
+set guioptions+=a
+set showmatch
+set wrap
+map <S-Insert> <MiddleMouse>
+map! <S-Insert> <MiddleMouse>
+"quit/save
+map <F2> :w!
+map <F3> :wq!
+map <F4> :q!
+" comment current line in insert & command mode
+map! <F5> <Esc>^i// <Esc><F2>
+map  <F5> ^i// <Esc><F2>
+map  <F10> gf
+map  <F11> :e#
+map <F6> :s/^/\/\/ /g
+map <F12> :!make
+filetype plugin on
+map <F6> ^xxx
+
+set t_Co=256
+set pastetoggle=<F9>
+set cindent
+set cinkeys=0{,0},!^F,o,O,e " default is: 0{,0},0),:,0#,!^F,o,O,e
+
+set guifont=Luxi\ Mono\ 13
+map <silent> <F11> :call system("wmctrl -ir " . v:windowid . " -b toggle,fullscreen")<CR>
+
+set nu
+set wrap!
+hi CursorLineNr ctermbg=225 term=none cterm=none
+hi CursorLine ctermbg=225 term=none cterm=none
+set cursorline
+hi Todo ctermbg=white ctermfg=red
+hi Type ctermfg=5
+set linespace=5
+set lines=40 columns=150
+"hi cComment2String guifg=blue
+"hi cNumber guifg=blue
+
+hi Statement gui=NONE
+hi Type gui=NONE
+hi Keyword gui=NONE
+unlet c_comment_strings
+
+#--------------------------------------------------------------------------
+
+# fix alt+tab to switch windows
+* under setting/keyboard/keyboard shortcuts/customize shortcuts
+*       search for 'switch windows' press alt+tab
+
+# install virt tools (optional)
+* dnf install -y virt-manager libvirt
+systemctl start libvirtd
+systemctl enable libvirtd
+
+# install wine
+* goto /tmp
+* configure and install both 32-bit and 64-bit wine
+*
+* Install 32-bit dependencies:
+*       dnf install -y glibc.i686 glibc-devel.i686 libXtst.i686 libX11-devel.i686 freetype-devel.i686 freetype-devel.i686 libXrender-devel.i686 gnutls-devel.i686 libXft-devel.i686
+*       (only if required) dnf install -y gcc libX11-devel freetype-devel zlib-devel libxcb-devel libxslt-devel libgcrypt-devel libxml2-devel gnutls-devel libpng-devel libjpeg-turbo-devel libtiff-devel dbus-devel fontconfig-devel
+*
+* Install 64-bit dependencies:
+*       dnf install -y freetype-devel libXrender-devel gnutls-devel libXft-devel
+*
+* download and extract latest version from 
+        https://dl.winehq.org/wine/source/7.x/
+* example:
+*       curl -O https://dl.winehq.org/wine/source/7.0/wine-7.0.tar.xz
+*
+* tar -xvf wine-7.0.tar.xz
+* cd wine-7.0
+*
+* Build 64 bit wine FIRST
+*       ./configure --prefix=/sw/tools/wine64 --enable-win64
+*        make -j4 ; make install
+*        add wine64 to PATH
+*        setenv PATH /sw/tools/wine64/bin:${PATH}
+*        wine64 --version
+*
+* Build 32 bit wine NEXT
+*       ./configure --prefix=/sw/tools/wine32
+*        make -j4 ; make install
+*        add wine to PATH   
+*        setenv PATH /sw/tools/wine32/bin:${PATH}
+*        wine --version
+*
+* together for .cshrc
+* setenv PATH /sw/tools/wine32/bin:/sw/tools/wine64/bin:${PATH}
+* setenv LD_LIBRARY_PATH /sw/tools/wine32/lib/wine/i386-unix:/sw/tools/wine64/lib/wine/x86_64-unix:${LD_LIBRARY_PATH}
+* 
+* (if freetype not found during ./configure of 32 bit)
+*       freetype 32bit is installed in /usr/include/freetype2
+*       but ./configure searches in /use/include/ only
+*       so copy the contents of /usr/include/freetype2 and and paste into /usr/inlcude/
+*       do configure again
+
+#install modelsim
+./modelsim-2020.4_Downloadly.ir.aol
+
+# copy MentorKG.exe and sfk in /sw/tools and add this to PATH
+./sfk rep -yes -bin /41574989CF41564589C6415541544189D455534889FB4881ECF8000000488B8798020000/4831c0c3CF41564589C6415541544189D455534889FB4881ECF8000000488B8798020000/ -dir .
+MentorKG.exe -patch . 
+    save output to license.txt
+
+edit modeltect.vco
+    change MTI_VCO_MODE to 64
+
+# modelsim (.cshrc)
+setenv PATH /sw/msim/modeltech/bin:${PATH}
+setenv LM_LICENSE_FILE /sw/msim/license.txt
+setenv MTI_VCO_MODE 64
