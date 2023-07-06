@@ -51,7 +51,7 @@ gsettings set org.gnome.desktop.wm.preferences button-layout ":minimize,maximize
 
 --------------------------------------------------------------------------------
 # CentOS-9-Stream epel update
-dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+dnf install -y epel-release
 dnf install -y epel-next-release
 
 --------------------------------------------------------------------------------
@@ -86,9 +86,7 @@ setenv LD_LIBRARY_PATH /usr/local/lib:${LD_LIBRARY_PATH}
 
 --------------------------------------------------------------------------------
 # install ostinato
-yum install mesa-libGL-devel mesa-libGLU-devel
-yum install -y libnl3 libnl3-devel
-yum install -y libpcap libpcap-devel (not available)
+yum install mesa-libGL-devel mesa-libGLU-devel libnl3 libnl3-devel libpcap libpcap-devel
 git clone https://github.com/the-tcpdump-group/libpcap
 ./configure; make ; make install
 git clone https://github.com/pstavirs/ostinato.git
