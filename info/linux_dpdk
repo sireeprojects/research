@@ -18,6 +18,27 @@ setenv RTE_SDK /sw/tools_backup/dpdk-stable-19.11.11
 setenv ARCH x86
 
 --------------------------------------------------------------------------------
+# optional if not already done
+dnf upgrade --refresh
+dnf update
+# install latest python first to get meson and ninja
+dnf install python3
+# pip3 is required to install meson and ninja
+dnf install python3-pip
+# install other requirements
+pip3 install meson ninja
+pip3 install pyelftools
+dnf install numactl-devel
 
+# Compile
+meson build
+ninja -C build
 
+# To include the examples as part of the build, replace the meson command with:
+meson -Dexamples=all build
 
+cd build
+meson install --destdir=<path>
+
+cd into the lib* directory
+ldcofig
