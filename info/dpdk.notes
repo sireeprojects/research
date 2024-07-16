@@ -1,0 +1,170 @@
+
+----------------
+virtio queues
+https://www.youtube.com/watch?v=P-zupHddtmY (overview)
+https://www.youtube.com/watch?v=tlyhuVo-YtA (descriptors)
+other videos: https://www.youtube.com/@stephenmarz7232/videos
+----------------
+vhost user
+https://www.youtube.com/watch?v=eTD4l90S5Pg&t=909s
+----------------
+Vhost: Sharing is better (thread placement)
+https://www.youtube.com/watch?v=odSWXzoMfas&t=244s
+----------------
+good virtio diagrams 
+https://www.youtube.com/watch?v=5MfHt0fjHyo
+----------------
+testpmd:
+https://www.youtube.com/watch?v=Un5-AN4nb9s
+----------------
+vhost/virtio architecture deep dive
+https://www.youtube.com/watch?v=gMd7gkLPTO4
+https://www.youtube.com/watch?v=y0ASTg3VCCc
+https://www.youtube.com/watch?v=EbHCbM8p2H4 (pmd)
+https://www.youtube.com/watch?v=ACV0yE_FEXk (pmd)
+----------------
+intel vmdq
+https://www.youtube.com/watch?v=QvKXbpV6WXk
+sr-iov
+https://www.youtube.com/watch?v=hRHsk8Nycdg
+
+
+
+virtualization
+https://www.youtube.com/watch?v=0rrDqBIP2qU&list=PL-JvKqQx2AtfQ8cGyKsFE7Tj2FyB1yCkd
+
+
+
+--------------------------------------------------------------------------------------------------------------
+
+dpdk with C++
+There are also many open source projects written in C++ and using DPDK. To name a few:
+
+TRex: https://github.com/cisco-system-traffic-generator/trex-core
+MoonGen: https://github.com/emmericp/MoonGen
+
+Try this:
+https://filipjaniszewski.com/2018/05/26/including-dpdk-libs-into-your-c-project/
+
+-------------------------------------------------------------------------------------------------------------
+Build dpdk:
+
+https://doc.dpdk.org/guides-20.11/linux_gsg/build_dpdk.html
+https://doc.dpdk.org/guides-20.11/prog_guide/build-sdk-meson.html
+https://doc.dpdk.org/guides/prog_guide/build_app.html
+
+
+detailed:
+https://hackmd.io/@nadhifmr/HJk_uDeIs
+----------------------------------------------------
+
+set path to python3
+setenv PATH /grid/common/pkgs/python/latest/bin:${PATH}
+
+meson and ninja
+sudo pip3 install meson ninja
+setenv PATH /usr/local/bin:${PATH}
+
+other requirements
+sudo pip3 install pyelftools
+
+----------------------------------------------------
+
+>> meson setup -Ddisable_drivers=net/mlx5,net/mlx4,common/mlx5,common/mlx4 build
+>> ninja -C build
+>> cd build
+>> meson install --destdir=/scratch/arunp/dpdk/dpdk-21.11.7/installed
+
+-------------------------------------------------------------------------------------------------------------
+https://mails.dpdk.org/archives/users/2020-December/005304.html
+
+So here is how we link against shared libs:
+
+meson build-meson -D disable_drivers=net/mlx4  --default-library=shared && ninja -C build-meson
+and when you want to run an application like testpmd for example:
+
+./dpdk-testpmd -n 4 -a 0000:08:00.0  -d $PATH_TO_BUILD/build-meson/drivers/librte_mempool_ring.so -d $PATH_TO_BUILD/build-meson/drivers/librte_net_mlx5.so -d $PATH_TO_BUILD/build-meson/drivers/librte_common_mlx5.so -d $PATH_TO_BUILD/build-meson/drivers/librte_regex_mlx5.so -d $PATH_TO_BUILD/build-meson/drivers/librte_vdpa_mlx5.so -- -i
+
+-------------------------------------------------------------------------------------------------------------
+https://juejin.cn/post/7082197955444211749
+
+Compile example:
+-----------------
+change prefix in /scratch/arunp/dpdk/dpdk-21.11.7/installed/usr/local/lib64/pkgconfig/libdpdk.pc
+change prefix in /scratch/arunp/dpdk/dpdk-21.11.7/installed/usr/local/lib64/pkgconfig/libdpdk-libs.pc
+setenv PKG_CONFIG_PATH /scratch/arunp/dpdk/dpdk-21.11.7/installed/usr/local/lib64/pkgconfig/
+
+inside helloworld
+make static
+make shared
+
+pkg-config libdpdk --libs
+pkg-config libdpdk --cflags-only-I
+
+-------------------------------------------------------------------------------------------------------------
+introduction >>
+https://embedx.medium.com/introduction-to-dpdk-architecture-and-principles-40db9a61a6f5
+
+dpdk examples >>
+rings: https://github.com/gsauthof/dpdk-examples
+
+https://dpdk.readthedocs.io/en/v16.07/sample_app_ug/vhost.html
+https://access.redhat.com/solutions/3394851
+https://blog.vmsplice.net/2011/09/qemu-internals-vhost-architecture.html
+
+
+https://www.youtube.com/watch?v=9EyweibHfEs
+
+https://lists.linuxfoundation.org/pipermail/virtualization/2014-August/027112.html
+
+https://lwn.net/Articles/551179/
+
+https://wiki.qemu.org/Features/VirtioVhostUser
+https://uarif1.github.io/vvu/dpdk-vvu-instructions.md
+
+https://www.qemu.org/docs/master/system/devices/vhost-user.html#shared-memory-object
+https://www.qemu.org/docs/master/system/devices/vhost-user-input.html
+
+
+https://doc.dpdk.org/guides/sample_app_ug/hello_world.html
+
+
+-------------------------------------------------------------------------------------------------------------
+
+access payload from mem buf
+
+https://stackoverflow.com/questions/63392719/how-do-we-can-access-to-payload-of-received-packets-in-dpdk-18-11-9
+rte_pktmbuf_mtod
+
+not so helpful, but check
+https://community.intel.com/t5/Embedded-Intel-Core-Processors/Dpdk-packet-processing/td-p/259947
+
+
+maybe a good example:
+https://github.com/ceph/dpdk/blob/master/app/test/test_mbuf.c
+
+----------------------------------------
+better/simple
+https://sdn.0voice.com/?id=2338
+	
+What does rte_pktmbuf_mtod mean
+Author: DPDK Development Column: Public 2023-11-02 02:58 683
+rte_pktmbuf_mtod is a macro definition in the DPDK (Data Plane Development Kit) library. It is used to convert the rte_mbuf structure type to a pointer to the data part of the packet. Specifically, the mtod macro accepts two parameters: the rte_mbuf structure pointer m and the required data type t. By using this macro, the payload part of the packet can be extracted from the rte_mbuf and interpreted as a pointer of the specified type t.
+
+For example, the following code snippet shows how to use rte_pktmbuf_mtod to convert an rte_mbuf to a data pointer of type uint8_t:
+
+struct rte_mbuf *m;
+uint8_t *data_ptr = rte_pktmbuf_mtod(m, uint8_t *);
+This will allow you to get the starting address of the packet in the mbuf and interpret it as a pointer of type uint8_t. This is very useful when processing network packets because you can directly access and manipulate the contents of the packet.
+
+----------------------------------------
+
+tests:
+https://github.com/ceph/dpdk/tree/master/app/test
+https://github.com/ceph/dpdk/tree/master/app/test-pmd
+
+
+hugepae without root access
+https://doc.dpdk.org/guides/linux_gsg/enable_func.html
+https://www.kernel.org/doc/Documentation/vm/hugetlbpage.txt
+
