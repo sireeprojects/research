@@ -42,3 +42,28 @@ meson install --destdir=<path>
 
 cd into the lib* directory
 ldcofig
+
+--------------------------------------------------------------------------------
+
+without Infiniband
+
+set path to python3
+setenv PATH <path to python>:${PATH}
+
+meson and ninja
+sudo pip3 install meson ninja
+setenv PATH /usr/local/bin:${PATH}
+
+other requirements
+sudo pip3 install pyelftools
+
+>> meson setup -Ddisable_drivers=net/mlx5,net/mlx4,common/mlx5,common/mlx4 build
+>> ninja -C build
+>> cd build
+>> meson install --destdir=<path for install>
+
+
+
+
+
+
