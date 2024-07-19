@@ -1,0 +1,96 @@
+<domain type='kvm' xmlns:qemu='http://libvirt.org/schemas/domain/qemu/1.0'>
+  <name>tpmd</name>
+  <uuid>4e477430-5ad8-4251-a078-810dc32eb06d</uuid>
+  <memory unit='KiB'>8388608</memory>
+  <currentMemory unit='KiB'>8388608</currentMemory>
+  <memoryBacking>
+    <hugepages>
+      <page size='1048576' unit='KiB'/>
+    </hugepages>
+  </memoryBacking>
+  <vcpu placement='static'>4</vcpu>
+  <os>
+    <type arch='x86_64' machine='pc-i440fx-4.1'>hvm</type>
+    <boot dev='hd'/>
+  </os>
+  <features>
+    <acpi/>
+    <apic/>
+  </features>
+  <cpu mode='host-passthrough' check='none' migratable='on'>
+    <numa>
+      <cell id='0' cpus='0-3' memory='8388608' unit='KiB' memAccess='shared'/>
+    </numa>
+  </cpu>
+  <clock offset='utc'/>
+  <on_poweroff>destroy</on_poweroff>
+  <on_reboot>restart</on_reboot>
+  <on_crash>destroy</on_crash>
+  <devices>
+    <emulator>/lan/cva/avip/users/arunp/from13_scratch/dpdk/testpmd_ixv/lm/qemu_rhel8.6/bin/qemu-system-x86_64</emulator>
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='qcow2'/>
+      <source file='/lan/cva/avip/users/arunp/from13_scratch/dpdk/testpmd_ixv/qcow/lm.qcow2'/>
+      <target dev='hda' bus='ide'/>
+      <address type='drive' controller='0' bus='0' target='0' unit='0'/>
+    </disk>
+    <controller type='usb' index='0' model='ich9-ehci1'>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x04' function='0x7'/>
+    </controller>
+    <controller type='pci' index='0' model='pci-root'/>
+    <controller type='ide' index='0'>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x01' function='0x1'/>
+    </controller>
+    <interface type='bridge'>
+      <mac address='52:54:00:bb:54:c7'/>
+      <source bridge='bp_arunp'/>
+      <model type='virtio'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x02' function='0x0'/>
+    </interface>
+    <interface type='vhostuser'>
+      <mac address='52:54:00:bb:54:c8'/>
+      <source type='unix' path='/tmp/arunp_ixv_ctrl_1.sock' mode='client'/>
+      <model type='virtio'/>
+      <driver queues='2'>
+        <host mrg_rxbuf='on'/>
+      </driver>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x03' function='0x0'/>
+    </interface>
+    <interface type='vhostuser'>
+      <mac address='52:54:00:bb:54:c9'/>
+      <source type='unix' path='/tmp/arunp_ixv_ctrl_2.sock' mode='client'/>
+      <model type='virtio'/>
+      <driver queues='2'>
+        <host mrg_rxbuf='on'/>
+      </driver>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x05' function='0x0'/>
+    </interface>
+    <serial type='pty'>
+      <target type='isa-serial' port='0'>
+        <model name='isa-serial'/>
+      </target>
+    </serial>
+    <console type='pty'>
+      <target type='serial' port='0'/>
+    </console>
+    <input type='mouse' bus='ps2'/>
+    <input type='keyboard' bus='ps2'/>
+    <graphics type='vnc' port='-1' autoport='yes'>
+      <listen type='address'/>
+    </graphics>
+    <audio id='1' type='none'/>
+    <video>
+      <model type='virtio' heads='1' primary='yes'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x06' function='0x0'/>
+    </video>
+    <memballoon model='virtio'>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x07' function='0x0'/>
+    </memballoon>
+  </devices>
+  <qemu:commandline>
+    <qemu:arg value='-set'/>
+    <qemu:arg value='device.net1.emulator=30'/>
+    <qemu:arg value='-set'/>
+    <qemu:arg value='device.net2.emulator=30'/>
+  </qemu:commandline>
+</domain>
