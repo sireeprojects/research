@@ -1,0 +1,9 @@
+-monitor unix:/tmp/arunp/ixials/monitor,server,nowait
+
+interactive:
+socat - UNIX-CONNECT:/tmp/monitor  (starts and interactive session)
+    (qemu)
+    system_powerdown
+
+remote:
+echo system_powerdown | sudo socat - UNIX-CONNECT:/tmp/monitor
