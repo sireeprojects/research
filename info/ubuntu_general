@@ -11,5 +11,4 @@ add a '#' before
 auth required pam_succeed_if.so user != root quiet_success
 
 - reboot
-
 --------------------------------------------------------------------------------
