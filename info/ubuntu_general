@@ -13,7 +13,7 @@ auth required pam_succeed_if.so user != root quiet_success
 - reboot
 --------------------------------------------------------------------------------
 
-apt install vim-gtk3 htop wireshark ostinato virt-manager make cmake tcsh wmctrl
+apt install vim-gtk3 htop wireshark ostinato virt-manager make cmake tcsh wmctrl git
 
 -- gcc install
 apt update
@@ -41,3 +41,11 @@ set histdup = erase
 set savehist = ( 5000 merge lock )
 alias precmd 'history -M ~/.historycsh; history -c; history -L ~/.historycsh'
 alias postcmd 'history -S ~/.historycsh'
+
+-----------------------------------------------------
+
+setup git:
+git config --global user.email siree.projects@gmail.com
+git config --global user.name sireeprojects
+
+then rnu gitall script
