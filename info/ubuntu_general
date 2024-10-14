@@ -52,5 +52,14 @@ then rnu gitall script
 
 
 enable sound in root login
-
 https://www.computernetworkingnotes.com/linux-tutorials/enable-sound-service-for-root-user-in-ubuntu-linux.html
+
+==================================================================
+
+ssh server
+
+sudo apt install openssh-server
+gvim /etc/ssh/sshd_config
+    PermitRootLogin prohibit-password to PermitRootLogin yes
+    PasswordAuthentication no to PasswordAuthentication yes
+service ssh restart
