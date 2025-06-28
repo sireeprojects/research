@@ -10,6 +10,9 @@ under [daemon]
 add a '#' before
 auth required pam_succeed_if.so user != root quiet_success
 
+disable fingerprint daemon
+sudo apt remove fprintd
+
 - reboot
 --------------------------------------------------------------------------------
 
@@ -19,19 +22,6 @@ apt install vim-gtk3 htop wireshark ostinato virt-manager make cmake tcsh wmctrl
 apt update
 apt install build-essential
 
--- enable root login
-
-sudo passwd root
-
-sudo vi /etc/gdm3/custom.conf
-AllowRoot=true
-under daemon
-
-sudo vi /etc/pam.d/gdm-password 
-comment 2nd line that end with != root quite_access
-
-disable fingerprint daemon
-sudo apt remove fprintd
 
 
 -- enable history between terminal sessions

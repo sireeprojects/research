@@ -1,0 +1,32 @@
+For Ubuntu 24.04
+----------------
+
+apt install unrar
+unrar x ./Mentor_Graphics_QuestaSim_2021.2.1_Linux.rar
+
+dpkg --add-architecture i386
+apt update
+
+apt install -y libxft2 libxft2:i386 lib32ncurses6 libxext6 libxext6:i386 libc6-dev-i386
+
+1. lic gen 
+    from (unzipped Mentor_Graphics_QuestaSim_2021.2.1/Crack/mentor2021_crack/licGen)
+    python2 mgclicgen.py <hostid>
+        hostid = ifconfig, the text after ether
+        example: python3 mgclicgen.py 08:3a:88:bb:95:c0
+        --- license.dat is generated
+        -- with python2 the above will run fine
+        -- with python3, open mgclicgen.py and replace
+            FOUT.write(LICSTR) with FOUT.write(LICSTR.encode())
+
+2. install questa sim 
+    ./questa_sim-2021.2_1.aol
+
+3. copy file into install dir, then execute
+    from (unzipped Mentor_Graphics_QuestaSim_2021.2.1/Crack/mentor2021_crack/patch)
+   ./pubkey_verify -y
+
+4. config env variable
+    setenv LM_LICENSE_FILE /sw/license.dat
+    setenv PATH /sw/questasim/linux:${PATH}
+    #setenv PATH /sw/questasim/linux_x86_64:${PATH}
