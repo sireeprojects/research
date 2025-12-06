@@ -170,11 +170,6 @@ https://www.kernel.org/doc/Documentation/vm/hugetlbpage.txt
 
 ------------------------------------------
 
-
-avip02 8.6
-avip04 7.6
-avip13 8.10
-avip15 7.9
 -------------------------------------------------------------------------------
 qemu compile:
 bzip2 -d qemu-4.1.0.tar.bz2
@@ -184,9 +179,6 @@ patch -p0 < qemu-4.1-ixverify.patch
 make -j50
 make install
 
-/scratch/arunp/qemu/qemu-4.1.0/installed/bin/
-/scratch/arunp/dpdk/dpdk-23.11/installed/usr/local/bin
-
 -------------------------------------------------------------------------------
 Default prerequisites:
 ----------------------
@@ -194,15 +186,6 @@ Default prerequisites:
 sudo acceess
 management and backplane upates
 virt tools (virt manager and libvirtd etc...)
-
--------------------------------------------------------------------------------
-Chassis setup
-license server: 10.206.149.46
--------------------------------------------------------------------------------
-from Jeevan
-/lan/cva/avip/jeevann/FB_KCBB_sep_delivery/KCBB_2nd_Deployment/rhel8.6_20Sep2024_nightly_MC_IXIA/rhel8.4/adaptor/new_MC_adaptor_22sep/adaptor
-/home/jeevann/ln_NW/Packages/9.10.8740.117/Ixia_Virtual_Load_Module_9.10_KVM.qcow2
-/lan/cva/avip/jeevann/FB_KCBB_sep_delivery/KCBB_2nd_Deployment/rhel8.6_20Sep2024_nightly_MC_IXIA/rhel8.4/adaptor/new_MC_adaptor_22sep/qemu
 
 -------------------------------------------------------------------------------
 DPDK Compile (hsv-avip15)
@@ -258,7 +241,6 @@ setenv PATH /home/arunp/.local/bin:${PATH}
 >> ninja -C build
 >> cd build
 >> meson install --destdir=/scratch/arunp/dpdk/dpdk-24.11/installed
-
 
 -----------------
 
