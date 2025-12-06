@@ -168,3 +168,104 @@ hugepae without root access
 https://doc.dpdk.org/guides/linux_gsg/enable_func.html
 https://www.kernel.org/doc/Documentation/vm/hugetlbpage.txt
 
+------------------------------------------
+
+
+avip02 8.6
+avip04 7.6
+avip13 8.10
+avip15 7.9
+-------------------------------------------------------------------------------
+qemu compile:
+bzip2 -d qemu-4.1.0.tar.bz2
+tar xvf qemu-4.1.0.tar
+patch -p0 < qemu-4.1-ixverify.patch
+./configure --prefix=/scratch/arunp/qemu/qemu-4.1.0/installed --target-list=x86_64-softmmu
+make -j50
+make install
+
+/scratch/arunp/qemu/qemu-4.1.0/installed/bin/
+/scratch/arunp/dpdk/dpdk-23.11/installed/usr/local/bin
+
+-------------------------------------------------------------------------------
+Default prerequisites:
+----------------------
+1GB hugepages
+sudo acceess
+management and backplane upates
+virt tools (virt manager and libvirtd etc...)
+
+-------------------------------------------------------------------------------
+Chassis setup
+license server: 10.206.149.46
+-------------------------------------------------------------------------------
+from Jeevan
+/lan/cva/avip/jeevann/FB_KCBB_sep_delivery/KCBB_2nd_Deployment/rhel8.6_20Sep2024_nightly_MC_IXIA/rhel8.4/adaptor/new_MC_adaptor_22sep/adaptor
+/home/jeevann/ln_NW/Packages/9.10.8740.117/Ixia_Virtual_Load_Module_9.10_KVM.qcow2
+/lan/cva/avip/jeevann/FB_KCBB_sep_delivery/KCBB_2nd_Deployment/rhel8.6_20Sep2024_nightly_MC_IXIA/rhel8.4/adaptor/new_MC_adaptor_22sep/qemu
+
+-------------------------------------------------------------------------------
+DPDK Compile (hsv-avip15)
+
+for 24.11 (in fact this should be set for all versions, I think)
+setenv CC /grid/common/pkgsData/gcc-v14.3.0/Linux/RHEL7.0-2017-x86_64/bin/gcc
+setenv PATH /grid/common/pkgsData/openssl-v3.0.0/Linux/RHEL7.0-2017-x86_64/bin:${PATH}
+setenv LD_LIBRARY_PATH /grid/common/pkgsData/openssl-v3.0.0/Linux/RHEL7.0-2017-x86_64/lib64:$LD_LIBRARY_PATH}
+setenv PKG_CONFIG_PATH /grid/common/pkgsData/openssl-v3.0.0/Linux/RHEL7.0-2017-x86_64/lib64/pkgconfig
+
+
+
+>> setenv PATH /grid/common/pkgsData/python-v3.8.5/Linux/RHEL6.0-2013-x86_64/bin:${PATH}
+>> pip3 install ninja meson pyelftools
+-- meson, ninja installed at /home/arunp/.local/bin
+-- add the above bin to PATH
+>> setenv PATH /home/arunp/.local/bin:${PATH}
+
+cd into dpdk extracted folder
+>> meson setup -Ddisable_drivers=net/mlx5,net/mlx4,common/mlx5,common/mlx4 build
+>> ninja -C build
+>> cd build
+>> meson install --destdir=/scratch/arunp/dpdk/dpdk-23.11_Arun/installed
+
+>> meson install --destdir=/scratch/arunp/dpdk/dpdk-23.11_Roman/installed
+-------------------------------------------------------------------------------
+
+Directory already configured.
+
+Just run your build command (e.g. ninja) and Meson will regenerate as necessary.
+Run "meson setup --reconfigure" to force Meson to regenerate.
+
+If build failures persist, run "meson setup --wipe" to rebuild from scratch
+using the same options as passed when configuring the build.
+
+--------------------------------------------------------------------------------------
+
+short version
+meson -Dbuildtype=debug -Dprefix=/path/to/install/dpdk build_folder
+ninja -C build_folder install
+--------------------------------------------------------------------------------------
+
+for DPDK 24.11 on hsv-avip15
+
+setenv PATH /grid/common/pkgsData/openssl-v3.0.0/Linux/RHEL7.0-2017-x86_64/bin:${PATH}
+setenv LD_LIBRARY_PATH /grid/common/pkgsData/openssl-v3.0.0/Linux/RHEL7.0-2017-x86_64/lib64:$LD_LIBRARY_PATH}
+
+setenv CC /grid/common/pkgsData/gcc-v14.3.0/Linux/RHEL7.0-2017-x86_64/bin/gcc
+setenv PKG_CONFIG_PATH /grid/common/pkgsData/openssl-v3.0.0/Linux/RHEL7.0-2017-x86_64/lib64/pkgconfig
+setenv PATH /grid/common/pkgsData/python-v3.8.5/Linux/RHEL6.0-2013-x86_64/bin:${PATH}
+setenv PATH /home/arunp/.local/bin:${PATH}
+>> meson setup -Ddisable_drivers=net/mlx5,net/mlx4,common/mlx5,common/mlx4 build
+>> ninja -C build
+>> cd build
+>> meson install --destdir=/scratch/arunp/dpdk/dpdk-24.11/installed
+
+
+-----------------
+
+with pdf -doc
+setenv PATH /grid/common/pkgsData/python-v3.8.5/Linux/RHEL6.0-2013-x86_64/bin:${PATH}
+setenv PATH /home/arunp/.local/bin:${PATH}
+
+
+meson setup -Ddisable_drivers=net/mlx5,net/mlx4,common/mlx5,common/mlx4 build --prefix=/scratch/arunp/dpdk/pdf/installed
+ninja -C build doc-pdf
