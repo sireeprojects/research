@@ -1,0 +1,236 @@
+build steps for dpdk-23.11.tar.gz
+===========
+#set environment variables
+setenv PKG_CONFIG_PATH /grid/common/pkgsData/openssl-v3.0.0/Linux/RHEL7.0-2017-x86_64/lib64/pkgconfig
+setenv PATH /grid/common/pkgsData/python-v3.8.5/Linux/RHEL6.0-2013-x86_64/bin:${PATH}
+setenv PATH /home/arunp/.local/bin:${PATH}
+
+set PRE=${PWD}/installed
+
+tar -zxvf dpdk-23.11.tar.gz
+cd dpdk-23.11
+patch -p1 < /home/arunp/ixm/metadata.patch
+meson setup -Ddisable_drivers=net/mlx5,net/mlx4,common/mlx5,common/mlx4 build --prefix=$PRE
+ninja -C build
+cd build
+meson install
+cd ../..
+
+---------------------------------------------------------------------------------------------------------
+
+patch file to handle metadata in user application
+==================================================
+diff -Naru tarballs/dpdk-23.11/lib/vhost/palladium.h dpdk-23.11/lib/vhost/palladium.h
+--- tarballs/dpdk-23.11/lib/vhost/palladium.h   1969-12-31 16:00:00.000000000 -0800
++++ dpdk-23.11/lib/vhost/palladium.h    2025-12-07 05:27:21.203827904 -0800
+@@ -0,0 +1,116 @@
++#include <stdint.h>
++
++#ifndef _palladium_h_
++#define _palladium_h_
++
++struct ixverify_metadata_hdr {
++   uint16_t mrg_num_buffers;
++   uint8_t generic_flags;
++#define IXVERIFY_ONLY_CTRL_PKT 0x1
++   char reserved[45];
++};
++
++#define PALLADIUM_IFG                   0x1ull
++#define PALLADIUM_LATENCY               0x2ull
++#define PALLADIUM_ET                    0x4ull
++#define PALLADIUM_PORT_DISABLED         0x8ull
++#define PALLADIUM_ET_RESET              0x10ull
++#define PALLADIUM_PORT_PAUSED           0x20ull     // Set by Ixia
++#define PALLADIUM_CLEARED_STATS         0x40ull     // Set by Ixia
++#define PALLADIUM_TCP_OFFSET            0x80ull     // Set by Ixia
++#define PALLADIUM_UDP_OFFSET            0x100ull    // Set by Ixia
++#define PALLADIUM_PORT_ID               0x200ull    // Set by Ixia
++#define PALLADIUM_CRC_ERROR             0x400ull    // Set by Ixia
++#define PALLADIUM_CRC_OFF               0x800ull    // Set by Ixia
++#define PALLADIUM_LINE_SPEED            0x1000ull   // Set by Cadence
++#define PALLADIUM_PORT_NAME             0x2000ull   // Set by Cadence
++#define PALLADIUM_PORT_REMOVED          0x4000ull   // Set by Ixia
++#define PALLADIUM_PREAMBLE              0x8000ull   // Set by Ixia/Cadence
++#define PALLADIUM_FCS                   0x10000ull  // Set by Ixia/Cadence
++#define PALLADIUM_TX_DURATION           0x20000ull  // Set by Cadence
++#define PALLADIUM_PFC_STOPPED_QUEUES    0x40000ull  // Set by Ixia
++#define PALLADIUM_PFC_CHANGE            0x80000ull  // Set by Cadence
++#define PALLADIUM_NEW_CONFIG            0x100000ull // Set by Ixia
++#define PALLADIUM_FCS_MCRC              0x200000ull // Set by Ixia
++#define PALLADIUM_TIMESTAMP_OFF         0x400000ull // Set by Ixia
++
++#define MAX_PFC_QUEUES             8
++#define PFC_ZERO_QUANTA                0
++#define PFC_INTERMEDIARY_QUANTA        1
++#define PFC_MAX_QUANTA             2
++#define PAUSE_ZERO_QUANTA          0
++#define PAUSE_INTERMEDIARY_QUANTA  1
++#define PAUSE_MAX_QUANTA           2
++
++struct palladium_ctrl_metadata {
++    uint64_t metadata_type;
++
++    union {
++        struct {
++            uint32_t chassis_ip;
++            uint16_t card_number;
++            uint16_t port_number;
++        } port_id;                      // Ixia -> Palladium
++
++        uint32_t line_speed;            // Palladium -> Ixia
++        char port_name[16];             // Palladium -> Ixia
++
++        struct {
++            uint64_t tx_first_ts;       // Palladium -> Ixia
++            uint64_t tx_last_ts;        // Palladium -> Ixia
++        } tx_ts;
++    };
++
++    union {
++        uint8_t xtor_queues;            // Palladium -> Ixia
++        uint8_t ixia_queues;            // Ixia -> Palladium
++    };
++
++    char reserved[20];
++} __attribute__((packed));
++
++struct palladium_packet_metadata {
++    uint64_t metadata_type;
++
++    union {
++        uint64_t ifg;                   // Ixia -> Palladium
++        uint64_t emulator_time;         // Palladium -> Ixia
++    };
++    uint64_t latency;
++    uint8_t pfc_priority;               // Ixia -> Palladium
++    uint8_t tcp_udp_checksum_offset;
++
++    uint8_t preamble[8];
++    uint8_t preamble_size;
++    uint32_t fcs;
++
++    char reserved[6];
++} __attribute__((packed));
++
++struct palladium_new_config_metadata {
++    uint64_t metadata_type;
++    uint8_t flow_control_mode;
++
++    struct {
++        /* Bit mask showing which queues are mapped */
++        uint8_t queues;
++        /* Bit masks for each of the 8 queues/priorities showing to which
++         * ixia queues/priorities are mapped to */
++        uint8_t map[MAX_PFC_QUEUES];
++    } pfc;
++
++    char reserved[27];
++} __attribute__((packed));
++
++struct avip_mdata_t {
++    uint16_t mrg_num_buffers; // 2 bytes
++    uint8_t  generic_flags;  // 1 byte
++    union { // 45 bytes
++        struct palladium_packet_metadata pd;
++        struct palladium_ctrl_metadata pd_control;
++        struct palladium_new_config_metadata pd_config;
++    };
++} __attribute__((packed));
++
++
++#endif
+diff -Naru tarballs/dpdk-23.11/lib/vhost/vhost_user.c dpdk-23.11/lib/vhost/vhost_user.c
+--- tarballs/dpdk-23.11/lib/vhost/vhost_user.c  2025-12-07 08:55:09.686855110 -0800
++++ dpdk-23.11/lib/vhost/vhost_user.c   2025-12-06 20:18:55.050829504 -0800
+@@ -366,14 +366,15 @@
+    }
+
+    dev->features = features;
+-   if (dev->features &
+-       ((1ULL << VIRTIO_NET_F_MRG_RXBUF) |
+-        (1ULL << VIRTIO_F_VERSION_1) |
+-        (1ULL << VIRTIO_F_RING_PACKED))) {
+-       dev->vhost_hlen = sizeof(struct virtio_net_hdr_mrg_rxbuf);
+-   } else {
+-       dev->vhost_hlen = sizeof(struct virtio_net_hdr);
+-   }
++   // if (dev->features &
++   //  ((1ULL << VIRTIO_NET_F_MRG_RXBUF) |
++   //   (1ULL << VIRTIO_F_VERSION_1) |
++   //   (1ULL << VIRTIO_F_RING_PACKED))) {
++   //  dev->vhost_hlen = sizeof(struct virtio_net_hdr_mrg_rxbuf);
++   // } else {
++   //  dev->vhost_hlen = sizeof(struct virtio_net_hdr);
++   // }
++    dev->vhost_hlen = 48; // ARUN
+    VHOST_LOG_CONFIG(dev->ifname, INFO,
+        "negotiated Virtio features: 0x%" PRIx64 "\n",
+        dev->features);
+diff -Naru tarballs/dpdk-23.11/lib/vhost/virtio_net.c dpdk-23.11/lib/vhost/virtio_net.c
+--- tarballs/dpdk-23.11/lib/vhost/virtio_net.c  2025-12-07 08:55:09.686855110 -0800
++++ dpdk-23.11/lib/vhost/virtio_net.c   2025-12-07 08:57:17.653930440 -0800
+@@ -24,6 +24,10 @@
+ #include "iotlb.h"
+ #include "vhost.h"
++//ARUN
++#include "palladium.h"
++#include <math.h>
++
+ #define MAX_BATCH_LEN 256
+
+ static __rte_always_inline uint16_t
+@@ -1232,6 +1236,14 @@
+    buf_iova = buf_vec[vec_idx].buf_iova;
+    buf_len = buf_vec[vec_idx].buf_len;
+
++    // ARUN
++    double frame_size;
++    double buffer_unit;
++    int buffers_needed;
++    frame_size = rte_pktmbuf_pkt_len(m);
++    buffer_unit = buf_len;
++    buffers_needed = (int)ceil((double)frame_size / (double)buffer_unit);
++
+    if (unlikely(buf_len < dev->vhost_hlen && nr_vec <= 1))
+        return -1;
+
+@@ -1289,7 +1301,13 @@
+        }
+
+        if (hdr_addr) {
+-           virtio_enqueue_offload(hdr_mbuf, &hdr->hdr);
++            // ARUN add custom hdr here
++           // virtio_enqueue_offload(hdr_mbuf, &hdr->hdr);
++            char *custom_hdr = (char*) rte_mbuf_to_priv(hdr_mbuf);
++            struct avip_mdata_t *mdata = (struct avip_mdata_t*)custom_hdr;
++            mdata->mrg_num_buffers = buffers_needed;
++            memcpy(&hdr->hdr, custom_hdr, dev->vhost_hlen);
++
+            if (rxvq_is_mergeable(dev))
+                ASSIGN_UNLESS_EQUAL(hdr->num_buffers,
+                        num_buffers);
+@@ -2904,12 +2922,14 @@
+        }
+    }
+-   for (vec_idx = 0; vec_idx < nr_vec; vec_idx++) {
+-       if (buf_vec[vec_idx].buf_len > hdr_remain)
+-           break;
+-
+-       hdr_remain -= buf_vec[vec_idx].buf_len;
+-   }
++   // for (vec_idx = 0; vec_idx < nr_vec; vec_idx++) {
++   //  if (buf_vec[vec_idx].buf_len > hdr_remain)
++   //      break;
++
++   //  hdr_remain -= buf_vec[vec_idx].buf_len;
++   // }
++    vec_idx = 0;
++    hdr_remain = 0;
+
+    buf_addr = buf_vec[vec_idx].buf_addr;
+    buf_iova = buf_vec[vec_idx].buf_iova;
+===============================================================================================
+
+
+  
