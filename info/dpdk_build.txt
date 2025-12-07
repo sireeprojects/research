@@ -232,5 +232,372 @@ diff -Naru tarballs/dpdk-23.11/lib/vhost/virtio_net.c dpdk-23.11/lib/vhost/virti
     buf_iova = buf_vec[vec_idx].buf_iova;
 ===============================================================================================
 
+simple loopback test
+--------------------
 
-  
+#include <rte_memory.h>
+#include <rte_launch.h>
+#include <rte_eal.h>
+#include <rte_vhost.h>
+#include <rte_per_lcore.h>
+#include <rte_lcore.h>
+#include <rte_debug.h>
+#include <rte_ethdev.h>
+#include <thread>
+#include "palladium.h"
+#define SOCK_PATH "/tmp/arunp_vlm_cp"
+
+using namespace std;
+
+struct rte_mempool *tx_mbuf_pool, *rx_mbuf_pool;
+static volatile bool port_ready = false;
+static volatile bool dev_ready = true;
+enum {VIRTIO_RXQ, VIRTIO_TXQ, VIRTIO_QNUM};
+void decode_avip_mdata(void *raw_data);
+
+static int worker(void *arg) {
+    int ret = 0;
+    struct rte_mbuf *txpkt, *rxpkt;
+    struct avip_mdata_t *txmeta;
+    struct avip_mdata_t *rxmeta;
+    int txcnt = 0;
+    int rxframe_len = 0;
+
+    do {
+        rxpkt = rte_pktmbuf_alloc(rx_mbuf_pool);
+    } while (rxpkt == NULL);
+
+    while (dev_ready) {
+        if (port_ready) {
+            ret = rte_vhost_dequeue_burst(0, VIRTIO_TXQ, tx_mbuf_pool, &txpkt, 1);
+            if (ret>0) {
+                char *txd = rte_pktmbuf_mtod(txpkt, char*);
+                txmeta = (avip_mdata_t*) txd;
+                // decode_avip_mdata(txd);
+                // RTE_LOG(INFO, MBUF, "Packet len: %d\n", rte_pktmbuf_pkt_len(txpkt));
+                // RTE_LOG(INFO, MBUF, "Data len: %d\n", rte_pktmbuf_data_len(txpkt));
+                // RTE_LOG(INFO, MBUF, "Priv len: %d\n", rte_pktmbuf_priv_size(tx_mbuf_pool));
+                // rte_pktmbuf_dump(stdout, txpkt, rte_pktmbuf_pkt_len(txpkt));
+
+                if (txmeta->generic_flags == 0) {
+                    rxmeta = (struct avip_mdata_t *)rte_mbuf_to_priv(rxpkt);
+                    memset(rxmeta, 0x0, sizeof(avip_mdata_t));
+                    // rxmeta->mrg_num_buffers = 3;
+
+                    rxframe_len = (rte_pktmbuf_pkt_len(txpkt)-sizeof(avip_mdata_t));
+                    // RTE_LOG(INFO, MBUF, "RX Packet len: %d\n", rxframe_len);
+                    char *rxd = rte_pktmbuf_mtod_offset(txpkt, char*, sizeof(avip_mdata_t));
+                    rte_memcpy(rte_pktmbuf_mtod(rxpkt, char*), rxd, rxframe_len);
+                    rxpkt->data_len = rxframe_len;
+                    rxpkt->pkt_len = rxframe_len;
+                    // rte_pktmbuf_dump(stdout, rxpkt, rte_pktmbuf_pkt_len(rxpkt));
+                    // decode_avip_mdata(rte_mbuf_to_priv(rxpkt));
+
+                    uint32_t rcnt = rte_vhost_enqueue_burst(0, VIRTIO_RXQ, &rxpkt, 1);
+                    if (rcnt != 1) {
+                        do {
+                            rte_pause();
+                            rcnt = rte_vhost_enqueue_burst(0, VIRTIO_RXQ, &rxpkt, 1);
+                        } while (rcnt !=1);
+                    }
+                }
+                rte_pktmbuf_free(txpkt);
+                rte_pktmbuf_reset(rxpkt);
+            }
+        }
+    }
+    return 0;
+}
+
+static int new_vid(int vid) {
+    printf("------------------------------------- New Device added: %d ready: %d\n", vid, port_ready);
+    port_ready = true;
+    return 0;
+}
+
+static void destroy_vid(int vid) {
+    dev_ready = false;
+    printf("Device Destroyed: %d ready: %d\n", vid, dev_ready);
+}
+
+static int vring_state_changed(int vid, uint16_t qid, int enable) {
+    // printf("State changed: vid:%d  qid:%d\n", vid, qid);
+    return 0;
+}
+
+static const struct rte_vhost_device_ops virtio_net_device_ops = {
+    .new_device =  new_vid,
+    .destroy_device = destroy_vid,
+    .vring_state_changed = vring_state_changed,
+};
+
+int main(int argc, char **argv) {
+    int ret;
+    unsigned lcore_id;
+
+    // rte_log_set_level_pattern("lib.vhost.config", RTE_LOG_ERR);
+    // rte_log_set_level_pattern("lib.eal", RTE_LOG_ERR);
+
+    ret = rte_eal_init(argc, argv);
+    if(ret < 0)
+        rte_panic("Cannot init EAL\n");
+
+    RTE_LOG(INFO, EAL, "Application started successfully\n");
+
+    tx_mbuf_pool = rte_pktmbuf_pool_create("TX_MBUF_POOL",
+        1024,             // max nof mbufs(pkts) that can be stored in this pool
+        512,              // per core cache size for lockfree access, high=less locking
+        0,                // private data area size
+        12288,            // total buffer size
+        rte_socket_id()); // NUMA node where mem pool should be allocated
+
+    if(tx_mbuf_pool == NULL)
+        rte_exit(EXIT_FAILURE, "tx_mbuf_pool create failed : %s\n", rte_strerror(rte_errno));
+
+    rx_mbuf_pool = rte_pktmbuf_pool_create("RX_MBUF_POOL",
+        1024,             // max nof mbufs(pkts) that can be stored in this pool
+        512,              // per core cache size for lockfree access, high=less locking
+        48,               // private data area size to hold metadata
+        12288,             // total buffer size
+        rte_socket_id()); // NUMA node where mem pool should be allocated
+
+    if(rx_mbuf_pool == NULL)
+        rte_exit(EXIT_FAILURE, "rx_mbuf_pool create failed : %s\n", rte_strerror(rte_errno));
+
+    ret = rte_vhost_driver_register(SOCK_PATH, RTE_VHOST_USER_CLIENT);
+    if(ret != 0)
+        rte_exit(EXIT_FAILURE, "vhost driver register failure.\n");
+
+    rte_vhost_driver_enable_features(SOCK_PATH, 1ULL << 15);
+
+    rte_vhost_driver_callback_register(SOCK_PATH, &virtio_net_device_ops);
+    rte_vhost_driver_start(SOCK_PATH);
+
+    lcore_id = 1;
+    rte_eal_remote_launch(worker, NULL, lcore_id);
+    rte_eal_wait_lcore(lcore_id);
+
+    rte_eal_cleanup();
+    return 0;
+}
+
+
+void decode_avip_mdata(void *raw_data)
+{
+    struct avip_mdata_t *mdata = (struct avip_mdata_t *)raw_data;
+
+    /* ====================================================================
+     * STEP 1: Decode always-present fields (first 3 bytes)
+     * ==================================================================== */
+    printf("=== ALWAYS PRESENT FIELDS ===================================\n");
+    printf("mrg_num_buffers: %u\n", mdata->mrg_num_buffers);
+    printf("generic_flags: 0x%x\n", mdata->generic_flags);
+
+    if (mdata->generic_flags & IXVERIFY_ONLY_CTRL_PKT) {
+        printf("  IXVERIFY_ONLY_CTRL_PKT flag set");
+    } else {
+        printf("  DATA FRAME flag set");
+    }
+
+    /* ====================================================================
+     * STEP 2: Get metadata_type to determine union variant
+     * ==================================================================== */
+    uint64_t *metadata_type_ptr = (uint64_t *)&mdata->pd;
+    uint64_t metadata_type = *metadata_type_ptr;
+
+    printf("\nmetadata_type: 0x%lx\n", metadata_type);
+
+    /* ====================================================================
+     * STEP 3: Decode based on metadata_type flags
+     * ==================================================================== */
+
+    /* --- PORT ID Metadata (Control) --- */
+    if (metadata_type & PALLADIUM_PORT_ID) {
+        // printf("\n=== PORT_ID Metadata (Control) ===\n");
+        printf("chassis_ip: 0x%08x\n", mdata->pd_control.port_id.chassis_ip);
+        printf("card_number: %u\n", mdata->pd_control.port_id.card_number);
+        printf("port_number: %u\n", mdata->pd_control.port_id.port_number);
+    }
+
+    /* --- Line Speed Metadata (Control) --- */
+    if (metadata_type & PALLADIUM_LINE_SPEED) {
+        // printf("\n=== LINE_SPEED Metadata (Control) ===\n");
+        printf("line_speed: %u\n", mdata->pd_control.line_speed);
+    }
+
+    /* --- Port Name Metadata (Control) --- */
+    if (metadata_type & PALLADIUM_PORT_NAME) {
+        // printf("\n=== PORT_NAME Metadata (Control) ===\n");
+        printf("port_name: %.16s\n", mdata->pd_control.port_name);
+    }
+
+    /* --- TX Duration Metadata (Control) --- */
+    if (metadata_type & PALLADIUM_TX_DURATION) {
+        // printf("\n=== TX_DURATION Metadata (Control) ===\n");
+        printf("tx_first_ts: %lu\n", mdata->pd_control.tx_ts.tx_first_ts);
+        printf("tx_last_ts: %lu\n", mdata->pd_control.tx_ts.tx_last_ts);
+    }
+
+    /* --- Queue Metadata (Control) --- */
+    // printf("\n=== QUEUE Metadata (Control) ===\n");
+    printf("xtor_queues/ixia_queues: 0x%x\n", mdata->pd_control.xtor_queues);
+
+    /* --- IFG / Emulator Time Metadata (Packet) --- */
+    if (metadata_type & PALLADIUM_IFG) {
+        // printf("\n=== IFG Metadata (Packet) ===\n");
+        printf("ifg: %lu\n", mdata->pd.ifg);
+    }
+
+    if (metadata_type & PALLADIUM_ET) {
+        // printf("\n=== EMULATOR_TIME Metadata (Packet) ===\n");
+        printf("emulator_time: %lu\n", mdata->pd.emulator_time);
+    }
+
+    /* --- Latency Metadata (Packet) --- */
+    if (metadata_type & PALLADIUM_LATENCY) {
+        // printf("\n=== LATENCY Metadata (Packet) ===\n");
+        printf("latency: %lu ns\n", mdata->pd.latency);
+    }
+
+    /* --- PFC Priority (Packet) --- */
+    // printf("\n=== PFC Metadata (Packet) ===\n");
+    printf("pfc_priority: %u\n", mdata->pd.pfc_priority);
+
+    /* --- TCP/UDP Checksum Offset (Packet) --- */
+    if (metadata_type & (PALLADIUM_TCP_OFFSET | PALLADIUM_UDP_OFFSET)) {
+        // printf("\n=== CHECKSUM OFFSET Metadata (Packet) ===\n");
+        printf("tcp_udp_checksum_offset: %u\n", mdata->pd.tcp_udp_checksum_offset);
+    }
+
+    /* --- Preamble Metadata (Packet) --- */
+    if (metadata_type & PALLADIUM_PREAMBLE) {
+        // printf("\n=== PREAMBLE Metadata (Packet) ===\n");
+        printf("preamble_size: %u bytes\n", mdata->pd.preamble_size);
+        printf("preamble: ");
+        for (int i = 0; i < mdata->pd.preamble_size && i < 8; i++) {
+            printf("%02x ", mdata->pd.preamble[i]);
+        }
+        printf("\n");
+    }
+
+    /* --- FCS Metadata (Packet) --- */
+    if (metadata_type & PALLADIUM_FCS) {
+        // printf("\n=== FCS Metadata (Packet) ===\n");
+        printf("fcs: 0x%08x\n", mdata->pd.fcs);
+    }
+
+    /* --- New Config Metadata --- */
+    if (metadata_type & PALLADIUM_NEW_CONFIG) {
+        // printf("\n=== NEW_CONFIG Metadata ===\n");
+        printf("flow_control_mode: %u\n", mdata->pd_config.flow_control_mode);
+        printf("pfc.queues (bitmask): 0x%02x\n", mdata->pd_config.pfc.queues);
+
+        printf("PFC Queue Mappings:\n");
+        for (int i = 0; i < MAX_PFC_QUEUES; i++) {
+            if (mdata->pd_config.pfc.queues & (1 << i)) {
+                printf("  Queue %d -> map: 0x%02x\n", i, mdata->pd_config.pfc.map[i]);
+            }
+        }
+    }
+
+    /* --- Status Flags --- */
+    printf("Status Flags:\n");
+    if (metadata_type & PALLADIUM_PORT_DISABLED)
+        printf("  PORT_DISABLED\n");
+    if (metadata_type & PALLADIUM_PORT_PAUSED)
+        printf("  PORT_PAUSED\n");
+    if (metadata_type & PALLADIUM_PORT_REMOVED)
+        printf("  PORT_REMOVED\n");
+    if (metadata_type & PALLADIUM_ET_RESET)
+        printf("  ET_RESET\n");
+    if (metadata_type & PALLADIUM_CLEARED_STATS)
+        printf("  CLEARED_STATS\n");
+    if (metadata_type & PALLADIUM_CRC_ERROR)
+        printf("  CRC_ERROR\n");
+    if (metadata_type & PALLADIUM_CRC_OFF)
+        printf("  CRC_OFF\n");
+    if (metadata_type & PALLADIUM_PFC_STOPPED_QUEUES)
+        printf("  PFC_STOPPED_QUEUES\n");
+    if (metadata_type & PALLADIUM_PFC_CHANGE)
+        printf("  PFC_CHANGE\n");
+    if (metadata_type & PALLADIUM_FCS_MCRC)
+        printf("  FCS_MCRC\n");
+    if (metadata_type & PALLADIUM_TIMESTAMP_OFF)
+        printf("  TIMESTAMP_OFF\n");
+    printf("\n");
+}
+
+---------------------------------------------------------
+makefile
+---------
+export PKG_CONFIG_PATH:=/scratch/arunp/dpdk/genai/installed/lib64/pkgconfig:/grid/common/pkgsData/openssl-v3.0.0/Linux/RHEL7.0-2017-x86_64/lib64/pkgconfig
+export LD_LIBRARY_PATH:=/grid/common/pkgsData/gcc-v14.3.0/Linux/RHEL7.0-2017-x86_64/lib64:/scratch/arunp/dpdk/genai/installed/lib64:${LD_LIBRARY_PATH}
+
+run:clean comp
+    @sudo LD_LIBRARY_PATH=/grid/common/pkgsData/gcc-v14.3.0/Linux/RHEL7.0-2017-x86_64/lib64:/scratch/arunp/dpdk/genai/installed/lib64:/grid/common/pkgsData/openssl-v3.0.0/Linux/RHEL7.0-2017-x86_64/lib64 ./loopback \
+        -l 0-3 \
+        -n 4 \
+        --huge-dir /dev/hugepages \
+        --socket-mem 1024 \
+        --log-level=debug \
+        --no-telemetry -d librte_mempool_ring.so
+
+comp:
+    @g++ \
+        -std=c++2a -O3 \
+        -DALLOW_EXPERIMENTAL_API main.cpp \
+        -I${PWD} -pthread \
+        `pkg-config --cflags libdpdk` \
+        `pkg-config --libs libdpdk` \
+        -o loopback \
+        -Wno-volatile \
+        -Wno-address-of-packed-member \
+        -Wl,--as-needed
+
+clean:
+    @rm -f loopback
+-----------------------------------------------
+
+startvm
+--------
+/scratch/arunp/qemu/qemu-4.1.0/installed/bin/qemu-system-x86_64 \
+    -name cdn_avip_vlm_0,debug-threads=off \
+    -cpu host \
+    -enable-kvm \
+    -m 4G \
+    -object memory-backend-file,id=mem,size=4G,mem-path=/dev/hugepages,share=on \
+    -numa node,memdev=mem -mem-prealloc \
+    -smp 2,sockets=1,cores=2,threads=1 -no-user-config \
+    -nodefaults -rtc base=utc -boot strict=on \
+    -drive file=/scratch/arunp/qcow/vlm.qcow2,if=none,id=drive-virtio-disk0,format=qcow2 \
+    -device virtio-blk-pci,scsi=off,bus=pci.0,addr=0x5,drive=drive-virtio-disk0,id=virtio-disk0,bootindex=1 \
+    -vnc :1000 -vga std  \
+    \
+    -netdev tap,id=hostnet0,vhost=on,script=scripts/qemu-ifup.csh \
+    -device virtio-net-pci,netdev=hostnet0,id=net0,mac="00:60:2f:00:00:01",bus=pci.0,addr=0x3 \
+    \
+    -chardev socket,id=char1,path=/tmp/arunp_vlm_cp,server,wait=off \
+    -netdev type=vhost-user,id=hostnet1,chardev=char1,vhostforce \
+    -device virtio-net-pci,netdev=hostnet1,mrg_rxbuf=on,vectors=0,id=net1,mac="00:60:2f:00:00:02",emulator=30,rx_queue_size="1024" \
+    --daemonize
+
+#-device virtio-net-pci,netdev=hostnet1,mrg_rxbuf=on,vectors=0,ioeventfd=off,ctrl_vq=off,id=net1,mac="00:60:2f:00:00:02",emulator=30 \
+#-device virtio-net-pci,netdev=hostnet1,mrg_rxbuf=on,vectors=0,id=net1,mac="00:60:2f:00:00:02",emulator=30,rx_queue_size="1024" \
+#-device piix3-usb-uhci,id=usb,bus=pci.0,addr=0x1.0x2 \
+#-device virtio-balloon-pci,id=balloon0,bus=pci.0,addr=0x6 -msg timestamp=on \
+#-chardev pty,id=charserial0 -device isa-serial,chardev=charserial0,id=serial0 \
+#-device virtio-net-pci,netdev=hostnet1,mrg_rxbuf=on,vectors=0,id=net1,mac="00:60:2f:00:00:02",bus=pci.0,addr=0x7,emulator=30;
+#-device virtio-net-pci,netdev=hostnet1,mq=on,mrg_rxbuf=on,vectors=6,id=net1,mac="00:60:2f:00:00:02",bus=pci.0,addr=0x7,emulator=30;
+#-chardev socket,id=char1,path=/tmp/arunp_vlm_cp,server=on \
+#-numa node,memdev=mem -mem-prealloc \
+#-serial telnet:127.0.0.1:9900,server,nowait \
+
+----------------------------------------
+
+qemu-ifup.csh
+-------------
+#!/bin/csh
+ip link set $1 up
+sleep 0.5s
+brctl addif bp117_sid_ixe $1
+exit 0
