@@ -1,0 +1,8 @@
+setenv PKG_CONFIG_PATH /sw/tools/installed/dpdk-24.11.2/usr/local/lib/x86_64-linux-gnu/pkgconfig
+setenv LD_LIBRARY_PATH /sw/tools/installed/dpdk-24.11.2/usr/local/lib/x86_64-linux-gnu
+
+#setenv PKG_CONFIG_PATH /lan/cva/avip/users/arunp/from13_scratch/dpdk/pkgs/dpdk22/installed/usr/local/lib64/pkgconfig/
+#setenv LD_LIBRARY_PATH /lan/cva/avip/users/arunp/from13_scratch/dpdk/pkgs/dpdk22/installed/usr/local/lib64:${LD_LIBRARY_PATH}
+
+#setenv PKG_CONFIG_PATH /lan/cva/avip/users/arunp/from13_scratch/dpdk/pkgs/dpdk-21.11.7/installed/usr/local/lib64/pkgconfig/
+#setenv LD_LIBRARY_PATH /lan/cva/avip/users/arunp/from13_scratch/dpdk/pkgs/dpdk-21.11.7/installed/usr/local/lib64:${LD_LIBRARY_PATH}

@@ -1,0 +1,7 @@
+./lbk \
+    -l 0-5 \
+    -n 2 \
+    --huge-dir /dev/hugepages \
+    --socket-mem 1024 \
+    --log-level=debug \
+    --no-telemetry -d librte_mempool_ring.so
