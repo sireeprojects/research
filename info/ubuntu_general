@@ -38,7 +38,7 @@ setup git:
 git config --global user.email siree.projects@gmail.com
 git config --global user.name sireeprojects
 
-then rnu gitall script
+then run gitall script
 
 
 enable sound in root login

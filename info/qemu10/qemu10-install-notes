@@ -1,0 +1,19 @@
+./configure
+apt install python3-pip
+apt install python3-sphinx
+apt install python3-sphinx-rtd-theme
+apt install ninja-build
+apt install libglib2.0-dev
+apt install libnuma-dev
+apt install flex
+apt install bison
+
+apt install libslirp-dev
+apt install libxdp-dev
+apt install libbpf-dev
+
+tar xvf qemu-10.0.0.tar.xz
+cd qemu-10.0.0
+./configure --target-list=x86_64-softmmu --prefix=<absolute path only>
+make -j NN
+make install
