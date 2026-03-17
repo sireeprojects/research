@@ -53,3 +53,18 @@ gvim /etc/ssh/sshd_config
     PermitRootLogin prohibit-password to PermitRootLogin yes
     PasswordAuthentication no to PasswordAuthentication yes
 service ssh restart
+
+-------------------------------------------------------------------------------
+
+for ubuntu 24.04
+
+hugepages
+
+edit /etc/default/grub
+
+add the following to GRUB_CMDLINE_LINUX_DEFAULT
+default_hugepagesz=1G hugepagesz=1G hugepages=4
+
+update-grub
+
+reboot
