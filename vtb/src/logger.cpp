@@ -75,4 +75,5 @@ Logger::~Logger() {
       m_flush_thread.join();
    }
 }
+
 }
