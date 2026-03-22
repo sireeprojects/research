@@ -36,6 +36,6 @@ $(OBJ_DIR)/vtb.o: ../vtb.cpp
 
 # Clean up
 clean:
-	rm -rf $(OBJ_DIR) $(TARGET)
+	rm -rf $(OBJ_DIR) $(TARGET) *.log
 
 .PHONY: all clean

@@ -1,4 +1,5 @@
 #include "config_manager.h"
+#include "messenger.h"
 
 namespace vtb {
 

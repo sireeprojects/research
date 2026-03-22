@@ -1,4 +1,5 @@
 #include "cmdline_parser.h"
+#include "messenger.h"
 
 
 namespace vtb {
