@@ -1,13 +1,73 @@
 #pragma once
 
+#include "cmdline_parser.h"
+#include "messenger.h"
+#include <string>
+#include <unordered_map>
+#include <any>
+#include <mutex>
+#include <optional>
+#include <type_traits>
+
 namespace vtb {
 
 class ConfigManager {
 public:
-   ConfigManager();
-   ~ConfigManager();
-private:
+    static ConfigManager& getInstance();
 
+    // Prevent copying
+    ConfigManager(const ConfigManager&) = delete;
+    ConfigManager& operator=(const ConfigManager&) = delete;
+
+    /**
+     * @brief Initializes the parser and processes CLI arguments.
+     * Returns true if parsing completed without exceptions.
+     */
+    bool init(int argc, char** argv);
+
+    /**
+     * @brief Get a value parsed from the command line.
+     */
+    template<typename T>
+    T getArg(const std::string& name) const { 
+        return m_parser.get<T>(name); 
+    }
+
+    /**
+     * @brief Store arbitrary data (int, bool, string, etc.) into the database.
+     */
+    template<typename T>
+    void setValue(const std::string& key, T&& value) {
+        std::lock_guard<std::mutex> lock(m_db_mutex);
+        m_database[key] = std::make_any<typename std::decay<T>::type>(std::forward<T>(value));
+    }
+
+    /**
+     * @brief Retrieve data from the database.
+     */
+    template<typename T>
+    std::optional<T> getValue(const std::string& key) const {
+        std::lock_guard<std::mutex> lock(m_db_mutex);
+        auto it = m_database.find(key);
+        if (it != m_database.end()) {
+            try {
+                return std::any_cast<T>(it->second);
+            } catch (const std::bad_any_cast&) {
+                return std::nullopt;
+            }
+        }
+        return std::nullopt;
+    }
+
+    void dumpConfig();
+
+private:
+    ConfigManager();
+    ~ConfigManager();
+
+    CmdlineParser m_parser;
+    std::unordered_map<std::string, std::any> m_database;
+    mutable std::mutex m_db_mutex;
 };
 
-}
+} // namespace vtb
