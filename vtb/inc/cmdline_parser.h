@@ -28,6 +28,7 @@ public:
                       std::string_view default_v = "");
 
     void parse(int argc, char** argv);
+    void print_usage() const; // New dynamic help generator
 
     template<typename T>
     T get(std::string_view name) const;
@@ -36,7 +37,6 @@ private:
     std::vector<Argument> m_arguments;
 };
 
-// Explicit specialization declarations for the linker
 template<> std::string CmdlineParser::get<std::string>(std::string_view name) const;
 template<> int CmdlineParser::get<int>(std::string_view name) const;
 template<> uint64_t CmdlineParser::get<uint64_t>(std::string_view name) const;

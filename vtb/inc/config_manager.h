@@ -6,19 +6,17 @@
 #include <any>
 #include <mutex>
 #include <optional>
-#include <type_traits>
 
 namespace vtb {
 
 class ConfigManager {
 public:
     static ConfigManager& getInstance();
-
     ConfigManager(const ConfigManager&) = delete;
     ConfigManager& operator=(const ConfigManager&) = delete;
 
     bool init(int argc, char** argv);
-
+    
     template<typename T>
     T getArg(std::string_view name) const { return m_parser.get<T>(name); }
 
@@ -33,9 +31,7 @@ public:
         std::lock_guard<std::mutex> lock(m_db_mutex);
         auto it = m_database.find(key);
         if (it != m_database.end()) {
-            try {
-                return std::any_cast<T>(it->second);
-            } catch (const std::bad_any_cast&) {}
+            try { return std::any_cast<T>(it->second); } catch (...) {}
         }
         return std::nullopt;
     }
