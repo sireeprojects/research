@@ -1,7 +1,7 @@
 # Compiler and Flags
 CXX      := g++
-CXXFLAGS := -I../inc -Wall -Wextra -std=c++17
-LDFLAGS  := 
+CXXFLAGS := -I../inc -Wall -Wextra -std=c++17 `pkg-config --cflags libdpdk`
+LDFLAGS  :=  `pkg-config --libs libdpdk`
 
 # Directories
 SRC_DIR  := ../src

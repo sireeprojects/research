@@ -2,6 +2,8 @@
 
 #include "cmdline_parser.h"
 #include "messenger.h"
+#include "common.h"
+
 #include <unordered_map>
 #include <any>
 #include <mutex>
