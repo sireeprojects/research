@@ -5,6 +5,7 @@
 #include "common.h"
 
 #include <unordered_map>
+#include <map>
 #include <any>
 #include <mutex>
 #include <optional>
@@ -47,6 +48,8 @@ private:
     CmdlineParser m_parser;
     std::unordered_map<std::string, std::any> m_database;
     mutable std::mutex m_db_mutex;
+
+    std::map<int, struct portmap> pmap;
 };
 
 } // namespace vtb
