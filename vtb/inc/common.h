@@ -31,4 +31,9 @@ struct port_device {
    int ctlq_id;
 };
 
+struct portmap {
+   struct vhost_device vd;
+   struct port_device pd;
+};
+
 }
