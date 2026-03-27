@@ -2,9 +2,8 @@
 
 namespace vtb {
 
-PortController::PortController() : isRunning(true) {
-    // Start the worker thread immediately upon construction
-    worker = std::thread(&PortController::epollWorker, this);
+PortController::PortController() : isRunning(false) {
+    // Constructor remains lean.
 }
 
 PortController::~PortController() {
@@ -14,12 +13,26 @@ PortController::~PortController() {
     }
 }
 
+void PortController::start() {
+    // Orchestration logic - can be overridden by specialized controllers
+    createSocketFds();
+    monitorSocketEvents();
+    startEpoll();
+}
+
+void PortController::startEpoll() {
+    if (!isRunning) {
+        isRunning = true;
+        worker = std::thread(&PortController::epollWorker, this);
+    }
+}
+
 void PortController::createSocketFds() {
-    // Empty base definition
+    // Default base implementation
 }
 
 void PortController::monitorSocketEvents() {
-    // Empty base definition
+    // Default base implementation
 }
 
 void PortController::epollWorker() {

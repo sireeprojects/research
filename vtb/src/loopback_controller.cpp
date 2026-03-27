@@ -3,20 +3,21 @@
 namespace vtb {
 
 LoopbackController::LoopbackController() : PortController() {
-    // Derived-specific initialization
+    // Calling protected start() ensures Loopback overrides are used
+    start();
 }
 
 void LoopbackController::createSocketFds() {
-    // Empty definition: Loopback-specific socket setup
+    // Loopback-specific socket initialization
 }
 
 void LoopbackController::monitorSocketEvents() {
-    // Empty definition: Loopback-specific epoll configuration
+    // Loopback-specific epoll registration
 }
 
 void LoopbackController::epollWorker() {
     while (isRunning) {
-        // Empty definition: Loopback-specific event loop logic
+        // Loopback-specific packet processing
     }
 }
 

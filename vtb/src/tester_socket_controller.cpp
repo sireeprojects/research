@@ -3,20 +3,21 @@
 namespace vtb {
 
 TesterSocketsController::TesterSocketsController() : PortController() {
-    // Constructor implementation: Test-specific initialization
+    // Calling protected start() ensures Tester overrides are used
+    start();
 }
 
 void TesterSocketsController::createSocketFds() {
-    // Empty definition: logic for test environment sockets
+    // Test-specific socket initialization
 }
 
 void TesterSocketsController::monitorSocketEvents() {
-    // Empty definition: logic for test event configuration
+    // Test-specific epoll registration
 }
 
 void TesterSocketsController::epollWorker() {
     while (isRunning) {
-        // Empty definition: logic for test packet handling or simulation
+        // Test-specific packet processing or simulation logic
     }
 }
 
