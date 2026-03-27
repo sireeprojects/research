@@ -49,4 +49,61 @@ void ConfigManager::dumpConfig() {
     }
 }
 
+
+void ConfigManager::init_vhost_device(int port_id, int vid, int nof_pairs) {
+    portmap& pm = pmap[port_id]; // Creates entry if not exists
+
+    pm.vd.vid = vid;
+    pm.vd.nof_queue_pairs = nof_pairs;
+    pm.vd.ready = true;
+
+    for (int i = 0; i < nof_pairs; i++) {
+        // Typically in vhost: RX is even (0, 2..), TX is odd (1, 3..)
+        pm.vd.qp[i].rxq_id = i * 2;
+        pm.vd.qp[i].txq_id = (i * 2) + 1;
+        pm.vd.qp[i].rxq_enabled = false;
+        pm.vd.qp[i].txq_enabled = false;
+
+        // Initialize port fds to -1 (not connected yet)
+        pm.pd.qp[i].rxq_id = -1;
+        pm.pd.qp[i].txq_id = -1;
+    }
+}
+
+void ConfigManager::set_queue_state(int port_id, uint16_t vring_id, bool enable) {
+    auto it = pmap.find(port_id);
+    if (it == pmap.end()) return;
+
+    vhost_device& vd = it->second.vd;
+    
+    for (int i = 0; i < vd.nof_queue_pairs; i++) {
+        if (vd.qp[i].rxq_id == vring_id) {
+            vd.qp[i].rxq_enabled = enable;
+            return;
+        }
+        if (vd.qp[i].txq_id == vring_id) {
+            vd.qp[i].txq_enabled = enable;
+            return;
+        }
+    }
+}
+
+void ConfigManager::assign_port_socket(int port_id, int qp_idx, int socket_fd) {
+    if (pmap.count(port_id) && qp_idx < vtb::MAX_QUEUE_PAIRS) {
+        // As discussed, we assign the same FD to both handles
+        pmap[port_id].pd.qp[qp_idx].rxq_id = socket_fd;
+        pmap[port_id].pd.qp[qp_idx].txq_id = socket_fd;
+        
+        // Mark as ready if this is the primary queue
+        if (qp_idx == 0) pmap[port_id].vd.ready = true;
+    }
+}
+
+void ConfigManager::assign_control_path(int port_id, int ctl_fd) {
+    if (pmap.count(port_id)) {
+        pmap[port_id].vd.ctlq_id = (uint16_t)ctl_fd; // Logical ID
+        pmap[port_id].pd.ctlq_id = ctl_fd;           // Physical FD
+    }
+}
+
 } // namespace vtb

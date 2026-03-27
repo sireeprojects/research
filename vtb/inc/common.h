@@ -4,7 +4,7 @@
 
 namespace vtb {
 
-static constexpr unsigned MAX_QUEUE_PAIRS=8;
+static constexpr int MAX_QUEUE_PAIRS=8;
 
 struct vhost_queue_pair {
    uint16_t rxq_id;

@@ -41,6 +41,11 @@ public:
 
     void dumpConfig();
 
+    void init_vhost_device(int port_id, int vid, int nof_pairs);
+    void set_queue_state(int port_id, uint16_t vring_id, bool enable);
+    void assign_port_socket(int port_id, int qp_idx, int socket_fd);
+    void assign_control_path(int port_id, int ctl_fd);
+
 private:
     ConfigManager();
     ~ConfigManager();
