@@ -1,0 +1,76 @@
+Virtual Tester Bridge Project Description
+I am building a C++ Application in Linux using DPDK. I want your help in implementing the header files (.h) and Implementation files (.cpp) based on the description of each classes I provide in the following texts.
+The project will have the following classes
+1.	Logger
+2.	Messenger
+3.	Command line Parser
+4.	Configuration Manager
+5.	Vhost Controller
+6.	Port Controller
+7.	Port Handler
+I have already implemented the following classes
+1.	Logger
+2.	Messenger
+3.	Command line Parser
+4.	Configuration Manager
+5.	Vhost Controller
+I will attached the headers and implementaiton files of the above 5 classes. I want help in implementing the other classes.
+Port Controller will be abstract class. The following classes will be derived from the Port Controller interface class.
+1.	Local Controller
+2.	Emulation Controller
+Port Handler will be abstract class. The following classes will be derived from the Port Handler interface class
+1.	Local Keysight IxVerify
+2.	Local Spirent TestCenter
+3.	Local aidc
+4.	Local Virtual Machine
+5.	Emulation Keysight IxVerify
+6.	Emulation Spirent TestCenter
+7.	Emulation aidc
+8.	Emulation Virtual Machine
+Now let me describe the classes one by one
+Port Controller Class:
+1.	This will be abstract class.
+2.	This class should have the following functions. I don’t want these functions to be accessible for a user.
+a.	Create controller events
+b.	Monitor controller events
+3.	This class should have a thread called epoll worker
+4.	The monitor controller events function will start the epoll worker thread
+5.	There should be a start function which will call the create and monitor controller events in sequence
+Local Controller Class:
+1.	This class will be derived from the port controller interface class
+2.	Create empty definition of the base class functions
+Emulator Controller Class:
+1.	This class will be derived from the port controller interface class
+2.	Create empty definition of the base class functions
+
+
+ 
+Port Handler Class:
+1.	This will be interface class.
+2.	This class should have 2 threads
+a.	Transmit thread
+b.	Receive thread
+3.	This class should have the following functions. I don’t want these functions to be accessible for a user. These functions will be called by the transmit thread in the following sequence.
+a.	Dequeue packets
+b.	Extract metadata
+c.	Decode metadata
+d.	Act on metadata
+e.	Create port metadata
+f.	Write packets
+4.	This class should have the following functions. I don’t want these functions to be accessible for a user. These functions will be called by the receive thread in the following sequence.
+a.	read packets
+b.	Extract metadata
+c.	Decode metadata
+d.	Act on metadata
+e.	Create vm metadata
+f.	enqueue packets
+5.	This class should have a start function that will start both the transmit and receive threads.
+6.	The following classes will be derived from the port handler class. Create empty definition of the base class functions.
+a.	Local Keysight IxVerify
+b.	Local Spirent TestCenter
+c.	Local aidc
+d.	Local Virtual Machine
+e.	Emulation Keysight IxVerify
+f.	Emulation Spirent TestCenter
+g.	Emulation aidc
+h.	Emulation Virtual Machine
