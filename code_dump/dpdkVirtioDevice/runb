@@ -1,1 +1,2 @@
-./backend -l 1-2 --file-prefix=bk1 --no-pci /tmp/my_custom_vhost.sock
+./backend -l 1-2 --file-prefix=vhost_backend --vdev='net_vhost0,iface=/tmp/vhost.sock,queues=1'
+#-l 1-2 --file-prefix=vhost_backend --vdev='net_vhost0,iface=/tmp/vhost.sock,queues=1'

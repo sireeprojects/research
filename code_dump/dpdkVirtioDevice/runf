@@ -1,9 +1,3 @@
-# -l 3-4: Use different cores than the backend (e.g., 1-2 for backend, 3-4 for frontend)
-# --vdev: This creates the virtual interface connected to the backend socket
-# --file-prefix: Must be DIFFERENT from the backend prefix
+#--vdev="net_virtio_user0,path=/tmp/vhost-user.sock,server=1"    
+./frontend -l 3-4 --file-prefix=virtio_frontend --vdev='net_virtio_user0,path=/tmp/vhost-user.sock'
 
-./frontend -l 3-4 --no-pci --file-prefix=fr1 \
-    --vdev="net_virtio_user0,path=/tmp/vhost-user.sock"    
-
-
-    #--vdev="net_virtio_user0,path=/tmp/vhost-user.sock,server=1"    
