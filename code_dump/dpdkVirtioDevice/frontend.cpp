@@ -11,6 +11,8 @@
 #include <rte_mbuf.h>
 #include <rte_ether.h>
 #include <rte_cycles.h>
+#include <rte_version.h> // Required header
+#include <rte_config.h>
 
 #define BURST_SIZE 32
 #define PRIV_DATA_SIZE 48
@@ -23,6 +25,9 @@ static void signal_handler(int signum) { (void)signum; force_quit = true; }
 class CustomFrontend {
 public:
     CustomFrontend(int argc, char** argv) {
+        rte_log_set_level_pattern("lib.vhost.config", RTE_LOG_ERR);
+        rte_log_set_level_pattern("lib.eal", RTE_LOG_ERR);
+
         // 1. Initialize EAL
         int ret = rte_eal_init(argc, argv);
         if (ret < 0) throw std::runtime_error("EAL Init Failed");
@@ -34,6 +39,8 @@ public:
                                              rte_socket_id());
         if (!mbuf_pool_) throw std::runtime_error("Mbuf Pool Allocation Failed");
 
+         std::cout << "DPDK Version: " << rte_version();
+
         // 3. Initialize Port 0 (the vdev)
         setup_port(0);
     }
@@ -43,7 +50,7 @@ public:
         memset(&port_conf, 0, sizeof(struct rte_eth_conf));
 
         // Configure with 1 RX and 1 TX queue
-        if (rte_eth_dev_configure(port_id, 1, 1, &port_conf) < 0)
+        if (rte_eth_dev_configure(port_id, 3, 3, &port_conf) < 0)
             throw std::runtime_error("Failed to configure port");
 
         // Setup RX Queue 0
@@ -52,6 +59,22 @@ public:
 
         // Setup TX Queue 0
         if (rte_eth_tx_queue_setup(port_id, 0, 1024, rte_eth_dev_socket_id(port_id), NULL) < 0)
+            throw std::runtime_error("Failed to setup TX queue");
+
+        // Setup RX Queue 1
+        if (rte_eth_rx_queue_setup(port_id, 1, 1024, rte_eth_dev_socket_id(port_id), NULL, mbuf_pool_) < 0)
+            throw std::runtime_error("Failed to setup RX queue");
+
+        // Setup TX Queue 1
+        if (rte_eth_tx_queue_setup(port_id, 1, 1024, rte_eth_dev_socket_id(port_id), NULL) < 0)
+            throw std::runtime_error("Failed to setup TX queue");
+
+        // Setup RX Queue 2
+        if (rte_eth_rx_queue_setup(port_id, 2, 1024, rte_eth_dev_socket_id(port_id), NULL, mbuf_pool_) < 0)
+            throw std::runtime_error("Failed to setup RX queue");
+
+        // Setup TX Queue 2
+        if (rte_eth_tx_queue_setup(port_id, 2, 1024, rte_eth_dev_socket_id(port_id), NULL) < 0)
             throw std::runtime_error("Failed to setup TX queue");
 
         // Start Port
@@ -66,8 +89,8 @@ public:
         std::cout << ">>> Traffic loop active. Sending 48-byte metadata + Ethernet frames." << std::endl;
 
         while (!force_quit) {
-            send_burst(port_id);
-            receive_burst(port_id);
+            // send_burst(port_id);
+            // receive_burst(port_id);
             // Throttle slightly to keep logs readable; remove for max performance
             rte_delay_us(500000); 
         }
