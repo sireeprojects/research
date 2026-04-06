@@ -1,8 +1,10 @@
 #include <iostream>
 #include <csignal>
+#include <unistd.h>
 #include <rte_eal.h>
 #include <rte_ethdev.h>
 #include <rte_dev.h>
+#include <rte_bus.h>
 
 #define NUM_MBUFS 8191
 #define MBUF_CACHE_SIZE 250
@@ -20,26 +22,23 @@ int main(int argc, char *argv[]) {
    uint16_t port_id;
 
    // This iterates through all ports initialized by EAL
-   RTE_ETH_FOREACH_DEV(port_id) {
-//		struct rte_eth_dev_info dev_info;
-//    	rte_eth_dev_info_get(port_id, &dev_info);
-//    
-//    	// Option A: Using the struct (requires rte_dev.h)
-//    	std::cout << "Device Name: " << dev_info.device->name << std::endl;
-//
-//    	// Option B: Using the API (cleaner)
-//    	char name[RTE_ETH_NAME_MAX_LEN];
-//    	rte_eth_dev_get_name_by_port(port_id, name);
-//    	std::cout << "Port Name: " << name << " ID: " << port_id << std::endl;
-
-      struct rte_eth_dev_info dev_info;
-      rte_eth_dev_info_get(port_id, &dev_info);
-		if (dev_info.device) {
-      	std::cout << "Found Device: " << dev_info.max_tx_queues << " (Port ID: " << port_id << ")" << std::endl;
-      	std::cout << "Found Device: " << dev_info.device->name << " (Port ID: " << port_id << ")" << std::endl;
-		}
-   }
-   return 0;
+	RTE_ETH_FOREACH_DEV(port_id) {
+	    struct rte_eth_dev_info dev_info;
+	    char dev_name[RTE_ETH_NAME_MAX_LEN];
+	
+	    // Get the hardware/driver info
+	    rte_eth_dev_info_get(port_id, &dev_info);
+	    
+	    // Get the name using the API we verified earlier
+	    if (rte_eth_dev_get_name_by_port(port_id, dev_name) == 0) {
+	        std::cout << "Found Device: " << dev_name << std::endl;
+	        std::cout << "  - Max TX Queues: " << dev_info.max_tx_queues << std::endl;
+	        std::cout << "  - Max RX Queues: " << dev_info.max_rx_queues << std::endl;
+	        std::cout << "  - MTU Range: " << dev_info.min_mtu << " to " << dev_info.max_mtu << std::endl;
+	    }
+	}
+   rte_eal_cleanup();
+   // return 0;
    
  //   if (!rte_eth_dev_is_valid_port(port_id)) {
  //      rte_exit(EXIT_FAILURE, "No Ethernet ports found. Did you forget --vdev?\n");
@@ -60,7 +59,8 @@ int main(int argc, char *argv[]) {
    
    // 5. Traffic Loop (Simulating a VM sending data)
    while (keep_running) {
-      rte_delay_ms(1000); // Send 1 packet per second for testing
+      // rte_delay_ms(1000); // Send 1 packet per second for testing
+      sleep(100);
    }
    
    rte_eal_cleanup();
