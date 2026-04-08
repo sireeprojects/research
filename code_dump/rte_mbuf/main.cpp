@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <csignal>
 #include <iostream>
+#include <stdio.h>
 
 static constexpr uint32_t MBUF_POOL_SIZE = 8191;
 static constexpr uint32_t MBUF_CACHE_SIZE = 256;
@@ -37,6 +38,15 @@ void dump_mbuf_hex_only(struct rte_mbuf *m) {
 int main(int argc, char* argv[]) {
    int ret = rte_eal_init(argc, argv);
    if (ret < 0) rte_exit(EXIT_FAILURE, "EAL init failed\n");
+
+    unsigned int main_core = rte_get_main_lcore();
+    unsigned int count = rte_lcore_count();
+    unsigned int current = rte_lcore_id();
+
+    printf("Main Core ID: %u\n", main_core);
+    printf("Total enabled lcores: %u\n", count);
+    printf("Current core ID: %u\n", current);
+
 
    signal(SIGINT, signal_handler);
 
