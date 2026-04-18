@@ -1,0 +1,1 @@
+g++ -O3 pmd.cpp -o pmd_drain `pkg-config --cflags --libs libdpdk`

@@ -1,0 +1,5 @@
+#numactl --cpunodebind=0 --membind=0 ./pmd_drain \
+./pmd_drain \
+    -l 1 \
+    --socket-mem 1024 \
+    --vdev 'net_vhost0,iface=/tmp/vhost-user.sock,queues=1'
