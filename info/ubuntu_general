@@ -1,28 +1,33 @@
 # enable root login Ubuntu 20.04
-- set root password from a user login
+-- set root password from a user login
 sudo passwd
 
-- sudo vi /etc/gdm3/custom.conf
+-- sudo vi /etc/gdm3/custom.conf
 AllowRoot=true
 under [daemon]
 
-- sudo vi /etc/pam.d/gdm-password
+-- sudo vi /etc/pam.d/gdm-password
 add a '#' before
 auth required pam_succeed_if.so user != root quiet_success
 
-disable fingerprint daemon
+-- disable fingerprint daemon
 sudo apt remove fprintd
 
-- reboot
---------------------------------------------------------------------------------
-
-apt install vim-gtk3 htop wireshark ostinato virt-manager make cmake tcsh wmctrl git
+-- reboot
 
 -- gcc install
-apt update
-apt install build-essential
+apt update build-essential vim-gtk3 htop wireshark ostinato virt-manager make cmake tcsh wmctrl git curl
 
+-- setup git:
+git config --global user.email siree.projects@gmail.com
+git config --global user.name sireeprojects
 
+-- ssh server
+sudo apt install openssh-server
+gvim /etc/ssh/sshd_config
+    PermitRootLogin prohibit-password to PermitRootLogin yes
+    PasswordAuthentication no to PasswordAuthentication yes
+service ssh restart
 
 -- enable history between terminal sessions
 https://stackoverflow.com/questions/22894794/tcsh-save-history-right-after-command
@@ -32,39 +37,16 @@ set savehist = ( 5000 merge lock )
 alias precmd 'history -M ~/.historycsh; history -c; history -L ~/.historycsh'
 alias postcmd 'history -S ~/.historycsh'
 
------------------------------------------------------
 
-setup git:
-git config --global user.email siree.projects@gmail.com
-git config --global user.name sireeprojects
-
-then run gitall script
-
-
-enable sound in root login
-https://www.computernetworkingnotes.com/linux-tutorials/enable-sound-service-for-root-user-in-ubuntu-linux.html
-
-==================================================================
-
-ssh server
-
-sudo apt install openssh-server
-gvim /etc/ssh/sshd_config
-    PermitRootLogin prohibit-password to PermitRootLogin yes
-    PasswordAuthentication no to PasswordAuthentication yes
-service ssh restart
-
--------------------------------------------------------------------------------
-
-for ubuntu 24.04
-
-hugepages
+-- Hugepages
 
 edit /etc/default/grub
-
 add the following to GRUB_CMDLINE_LINUX_DEFAULT
 default_hugepagesz=1G hugepagesz=1G hugepages=4
 
 update-grub
-
 reboot
+
+
+-- enable sound in root login
+https://www.computernetworkingnotes.com/linux-tutorials/enable-sound-service-for-root-user-in-ubuntu-linux.html
