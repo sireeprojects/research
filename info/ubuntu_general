@@ -16,7 +16,8 @@ sudo apt remove fprintd
 -- reboot
 
 -- gcc install
-apt update build-essential vim-gtk3 htop wireshark ostinato virt-manager make cmake tcsh wmctrl git curl
+apt update
+apt install -y build-essential vim-gtk3 htop wireshark ostinato virt-manager make cmake tcsh wmctrl git curl
 
 -- setup git:
 git config --global user.email siree.projects@gmail.com
