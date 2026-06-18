@@ -1,10 +1,20 @@
+# Collected Notes
+
+## Table of Contents
+* [Network Bridges in RHEL 8.6](#network-bridges-in-rhel-86)
+* [2. Common Troubleshooting](#2-common-troubleshooting)
+
+
+
+
 # Network Bridges in RHEL 8.6
 
 ## Creating empty bridges: (Requires sudo permissions)
 
 **Create the network config file under bp_arunp**
 
-/etc/sysconfig/network-scripts
+Filename: `/etc/sysconfig/network-scripts`
+
   ```bash
 	bp_arunp content should be like 
 	BOOTPROTO="none"
@@ -20,13 +30,17 @@ sudo nmcli connection up bp_arunp
 ```
 
 **Check if the interfaces are up and running**
-Check status:
+
+Check status
+
 ```bash
 ip addr show bp_arunp
 ```
-Check bridge details:
-  ```bash
-  bridge link show
-  ```
-		nmcli device status
-		nmcli connection show
+
+Check bridge details
+
+```bash
+bridge link show
+nmcli device status
+nmcli connection show
+```
